@@ -1,73 +1,130 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Kioto Pet AR</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.2/aframe-ar.min.js"></script>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      vr-mode-ui="enabled: false"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;">
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
 
-      <!-- Assets -->
-      <a-assets>
-        <a-asset-item id="model" src="./kioto.glb"></a-asset-item>
-        <audio id="audio" src="./audio-nome.mp3"></audio>
-      </a-assets>
+let camera, scene, renderer;
+let controller;
+let model;
+let mixer, action;
+let clock = new THREE.Clock();
+let isAnimating = true;
 
-      <!-- Personagem sem marcador -->
-      <a-entity id="character"
-        gltf-model="#model"
-        position="0 0 -2"
-        scale="1 1 1"
-        animation-mixer>
-      </a-entity>
+init();
+animate();
 
-      <!-- Câmera -->
-      <a-entity camera look-controls></a-entity>
-    </a-scene>
+function init() {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
 
-    <!-- Botões na tela -->
-    <div style="position: fixed; bottom: 20px; left: 20px; z-index: 999;">
-      <button id="toggleAnim">Pausar Animação</button>
-      <button id="micButton">🎤 Microfone</button>
-    </div>
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera();
 
-    <script>
-      const audio = document.getElementById("audio");
-      const character = document.getElementById("character");
-      const toggleAnimButton = document.getElementById("toggleAnim");
-      const micButton = document.getElementById("micButton");
-      let isPlaying = true;
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  container.appendChild(renderer.domElement);
 
-      toggleAnimButton.addEventListener("click", () => {
-        if (isPlaying) {
-          character.removeAttribute("animation-mixer");
-          toggleAnimButton.textContent = "Iniciar Animação";
-        } else {
-          character.setAttribute("animation-mixer", "");
-          toggleAnimButton.textContent = "Pausar Animação";
-        }
-        isPlaying = !isPlaying;
-      });
+  document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-      micButton.addEventListener("click", () => {
-        if (annyang) {
-          const commands = {
-            'olá': () => {
-              audio.play();
-            }
-          };
-          annyang.removeCommands();
-          annyang.addCommands(commands);
-          annyang.start({ autoRestart: false, continuous: false });
-        }
-      });
-    </script>
-  </body>
-</html>
+  controller = renderer.xr.getController(0);
+  scene.add(controller);
+
+  controller.addEventListener('select', onSelect);
+
+  const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  light.position.set(0.5, 1, 0.25);
+  scene.add(light);
+
+  setupUI();
+
+  renderer.xr.addEventListener('sessionstart', () => {
+    loadModel(); // Só carrega modelo depois do AR iniciar
+  });
+}
+
+function onSelect() {
+  if (!model) return;
+
+  model.visible = true;
+  model.position.set(0, 0, -0.5).applyMatrix4(controller.matrixWorld);
+  model.quaternion.setFromRotationMatrix(controller.matrixWorld);
+}
+
+function loadModel() {
+  const loader = new GLTFLoader();
+  loader.load('modelos/kioto.glb', (gltf) => {
+    model = gltf.scene;
+    model.scale.set(0.5, 0.5, 0.5);
+    model.visible = true;
+    scene.add(model);
+
+    mixer = new THREE.AnimationMixer(model);
+    action = mixer.clipAction(gltf.animations[0]);
+    action.play();
+  });
+}
+
+function animate() {
+  renderer.setAnimationLoop(render);
+}
+
+function render() {
+  const delta = clock.getDelta();
+  if (mixer && isAnimating) mixer.update(delta);
+  renderer.render(scene, camera);
+}
+
+function setupUI() {
+  const pauseBtn = document.createElement('button');
+  pauseBtn.textContent = 'Pausar Animação';
+  pauseBtn.style.position = 'fixed';
+  pauseBtn.style.bottom = '20px';
+  pauseBtn.style.left = '10px';
+  document.body.appendChild(pauseBtn);
+
+  pauseBtn.addEventListener('click', () => {
+    isAnimating = !isAnimating;
+    pauseBtn.textContent = isAnimating ? 'Pausar Animação' : 'Reiniciar Animação';
+  });
+
+  const micBtn = document.createElement('button');
+  micBtn.textContent = '🎤 Microfone';
+  micBtn.style.position = 'fixed';
+  micBtn.style.bottom = '20px';
+  micBtn.style.left = '150px';
+  document.body.appendChild(micBtn);
+
+  micBtn.addEventListener('click', () => {
+    startRecognition();
+  });
+}
+
+function startRecognition() {
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = 'pt-BR';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.start();
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript.toLowerCase();
+    if (transcript.includes('olá') || transcript.includes('ola')) {
+      speak("Olá, sou o Kioto Pet");
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Erro de reconhecimento:', event.error);
+  };
+}
+
+function speak(text) {
+  const synth = window.speechSynthesis;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'pt-BR';
+  synth.speak(utter);
+}
+</script>
