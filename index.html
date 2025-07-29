@@ -1,48 +1,30 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Kioto Pet AR</title>
-    <!-- A-Frame -->
+    <meta charset="utf-8" />
+    <title>Teste do Modelo Kioto</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <!-- AR.js -->
     <script src="https://cdn.rawgit.com/jeromeetienne/ar.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
   </head>
-
   <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam;">
-      <!-- Assets -->
+    <a-scene embedded arjs>
+      <!-- Carregar o modelo -->
       <a-assets>
-        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-        <audio id="audio" src="audio-nome.mp3"></audio>
+        <a-asset-item id="kiotoModel" src="./kioto.glb"></a-asset-item>
       </a-assets>
 
-      <!-- Marcador -->
-      <a-marker type="pattern" url="https://kiotozy.github.io/KiotoPetAR/kioto-marcador.patt" id="marker">
-        <a-entity 
-          gltf-model="#model"
-          position="0 0.5 0"
-          scale="1 1 1"
-          rotation="0 0 0">
-        </a-entity>
+      <!-- Usar marcador Hiro padrão só para teste -->
+      <a-marker preset="hiro">
+        <a-entity
+          gltf-model="#kiotoModel"
+          scale="0.5 0.5 0.5"
+          position="0 0 0"
+          rotation="0 180 0"
+        ></a-entity>
       </a-marker>
 
       <!-- Câmera -->
       <a-entity camera></a-entity>
     </a-scene>
-
-    <!-- Áudio ao detectar o marcador -->
-    <script>
-      const marker = document.querySelector("#marker");
-      const audio = document.querySelector("#audio");
-
-      marker.addEventListener("markerFound", () => {
-        audio.play();
-      });
-
-      marker.addEventListener("markerLost", () => {
-        audio.pause();
-        audio.currentTime = 0;
-      });
-    </script>
   </body>
 </html>
