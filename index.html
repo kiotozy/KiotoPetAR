@@ -1,11 +1,25 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <title>Kioto Pet AR</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.7.7/aframe/build/aframe-ar.min.js"></script>
   </head>
-  <body>
-    <h1>Site em construção</h1>
-    <p>Aguardando o modelo do Kioto Pet em realidade aumentada.</p>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene embedded arjs>
+      <a-assets>
+        <a-asset-item id="kiotoModel" src="kioto.glb"></a-asset-item>
+        <audio id="kioto-audio" src="audio-nome.mp3"></audio>
+      </a-assets>
+
+      <a-marker type="pattern" url="kioto-marker.patt">
+        <a-entity gltf-model="#kiotoModel" position="0 0 0" scale="0.5 0.5 0.5" rotation="0 0 0"
+                  animation-mixer="loop: repeat"></a-entity>
+        <a-entity sound="src: #kioto-audio; autoplay: true;"></a-entity>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
   </body>
 </html>
