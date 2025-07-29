@@ -15,8 +15,9 @@
         <audio id="fala-nome" src="audio-nome.mp3"></audio>
       </a-assets>
 
-      <!-- Modelo GLB com animações -->
+      <!-- Modelo GLB com animação -->
       <a-entity
+        id="kioto"
         gltf-model="#model"
         animation-mixer
         position="0 0 -3"
@@ -27,11 +28,18 @@
       <a-entity camera position="0 1.6 0"></a-entity>
     </a-scene>
 
-    <!-- Áudio + Comando de voz -->
+    <!-- Botões -->
+    <button id="mic-button" style="position: absolute; top: 10px; left: 10px; z-index: 2;">🎤 Microfone</button>
+    <button id="toggle-animation" style="position: absolute; top: 60px; left: 10px; z-index: 2;">⏸ Pausar animação</button>
+
+    <!-- Scripts -->
     <script>
       const audio = document.getElementById('fala-nome');
+      const kioto = document.getElementById('kioto');
+      const toggleBtn = document.getElementById('toggle-animation');
+      let isPlaying = true;
 
-      // Reproduz áudio ao iniciar
+      // Toca o áudio ao carregar (se permitido)
       window.addEventListener("load", () => {
         setTimeout(() => {
           audio.play().catch(() => {
@@ -40,7 +48,14 @@
         }, 1500);
       });
 
-      // Comandos de voz
+      // Botão para pausar/retomar animação
+      toggleBtn.addEventListener("click", () => {
+        isPlaying = !isPlaying;
+        kioto.setAttribute("animation-mixer", isPlaying ? "" : "timeScale: 0");
+        toggleBtn.textContent = isPlaying ? "⏸ Pausar animação" : "▶️ Reproduzir animação";
+      });
+
+      // Comando de voz via botão
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -48,15 +63,15 @@
 
         recognition.onresult = (event) => {
           const comando = event.results[0][0].transcript.toLowerCase();
-          if (comando.includes("qual seu nome")) {
+          if (comando.includes("qual seu nome") || comando.includes("olá") || comando.includes("ola")) {
             audio.play();
           }
         };
 
-        recognition.onend = () => recognition.start();
+        recognition.onend = () => {}; // não reinicia sozinho
 
-        // Ativa reconhecimento de voz após clique
-        document.body.addEventListener("click", () => {
+        // Ativa ao clicar no botão
+        document.getElementById("mic-button").addEventListener("click", () => {
           recognition.start();
         });
       }
