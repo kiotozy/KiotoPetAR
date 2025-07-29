@@ -1,98 +1,82 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8">
     <title>Kioto Pet AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- MindAR + Three.js -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.7/dist/mindar-image-three.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.2/aframe/build/aframe-ar-nft.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden">
-    <div id="ar-container"></div>
+    <a-scene
+      vr-mode-ui="enabled: false"
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false;"
+      renderer="logarithmicDepthBuffer: true;"
+    >
+      <a-assets>
+        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+      </a-assets>
 
-    <button id="toggle-animation" style="position: absolute; top: 10px; left: 10px; z-index: 10;">
+      <a-entity
+        id="kioto"
+        gltf-model="#model"
+        position="0 0 -2"
+        rotation="0 180 0"
+        scale="1 1 1"
+        animation-mixer
+        visible="true"
+      ></a-entity>
+
+      <a-camera position="0 0 0" look-controls-enabled="true"></a-camera>
+    </a-scene>
+
+    <button
+      onclick="toggleAnimation()"
+      style="position: absolute; top: 20px; left: 20px; z-index: 1;"
+    >
       Pausar Animação
     </button>
-    <button id="mic" style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+
+    <button
+      onclick="startVoice()"
+      style="position: absolute; top: 20px; right: 20px; z-index: 1;"
+    >
       🎤 Microfone
     </button>
 
-    <audio id="audio" src="audio-nome.mp3"></audio>
+    <audio id="resposta" src="audio-nome.mp3"></audio>
 
     <script>
-      const start = async () => {
-        const container = document.querySelector("#ar-container");
-        const mindarThree = new window.MINDAR.IMAGE.MindARThree({
-          container,
-          imageTargetSrc: "", // Nenhum marcador
-          filterMinCF: 0.0001,
-          filterBeta: 0.0001,
-        });
+      const model = document.getElementById("kioto");
+      let isPaused = false;
 
-        const { renderer, scene, camera } = mindarThree;
-        const anchor = mindarThree.addAnchor(0);
+      function toggleAnimation() {
+        if (!model) return;
+        const mixer = model.components["animation-mixer"];
+        if (!mixer) return;
 
-        const loader = new THREE.GLTFLoader();
-        let mixer, model, action;
+        isPaused = !isPaused;
+        mixer.pauseAnimation(isPaused);
+      }
 
-        loader.load("kioto.glb", (gltf) => {
-          model = gltf.scene;
-          model.scale.set(1, 1, 1);
-          model.position.set(0, -1, 0);
-          anchor.group.add(model);
+      function startVoice() {
+        if (annyang) {
+          annyang.abort();
+          annyang.removeCommands();
 
-          mixer = new THREE.AnimationMixer(model);
-          action = mixer.clipAction(gltf.animations[0]);
-          action.play();
-        });
+          annyang.addCommands({
+            "olá": () => {
+              document.getElementById("resposta").play();
+            },
+          });
 
-        // Botão de animação
-        let paused = false;
-        document.querySelector("#toggle-animation").addEventListener("click", () => {
-          if (paused) {
-            action.play();
-            paused = false;
-          } else {
-            action.stop();
-            paused = true;
-          }
-        });
-
-        // Reconhecimento de voz
-        const micButton = document.getElementById("mic");
-        const audio = document.getElementById("audio");
-
-        micButton.addEventListener("click", () => {
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!SpeechRecognition) return alert("Seu navegador não suporta reconhecimento de voz");
-
-          const recognition = new SpeechRecognition();
-          recognition.lang = "pt-BR";
-          recognition.start();
-
-          recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.toLowerCase();
-            if (transcript.includes("olá")) {
-              audio.play();
-            }
-          };
-        });
-
-        // Loop de animação
-        const clock = new THREE.Clock();
-        renderer.setAnimationLoop(() => {
-          const delta = clock.getDelta();
-          if (mixer && !paused) mixer.update(delta);
-          renderer.render(scene, camera);
-        });
-
-        await mindarThree.start();
-      };
-
-      start();
+          annyang.start({ autoRestart: true, continuous: false });
+        } else {
+          alert("Reconhecimento de voz não suportado no seu navegador.");
+        }
+      }
     </script>
   </body>
 </html>
