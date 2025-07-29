@@ -12,11 +12,10 @@
       <!-- Ativos -->
       <a-assets>
         <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-        <audio id="fala-nome" src="audio-nome.mp3"></audio>
       </a-assets>
 
-      <!-- Modelo GLB com animações -->
-      <a-entity
+      <!-- Modelo GLB -->
+      <a-entity id="kioto"
         gltf-model="#model"
         animation-mixer
         position="0 0 -3"
@@ -24,41 +23,55 @@
         rotation="0 0 0">
       </a-entity>
 
+      <!-- Câmera -->
       <a-entity camera position="0 1.6 0"></a-entity>
     </a-scene>
 
-    <!-- Áudio + Comando de voz -->
     <script>
-      const audio = document.getElementById('fala-nome');
+      // Função para falar texto em voz alta
+      function falar(texto) {
+        const fala = new SpeechSynthesisUtterance(texto);
+        fala.lang = 'pt-BR';
+        speechSynthesis.speak(fala);
+      }
 
-      // Reproduz áudio ao iniciar
-      window.addEventListener("load", () => {
-        setTimeout(() => {
-          audio.play().catch(() => {
-            console.warn("Áudio bloqueado até interação do usuário");
-          });
-        }, 1500);
-      });
-
-      // Comandos de voz
+      // Reconhecimento de voz
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = "pt-BR";
+        recognition.continuous = false;
 
         recognition.onresult = (event) => {
           const comando = event.results[0][0].transcript.toLowerCase();
+          console.log("Você disse:", comando);
+
+          const modelo = document.querySelector('#kioto');
+
           if (comando.includes("qual seu nome")) {
-            audio.play();
+            falar("Meu nome é Kioto, seu pet virtual.");
+          } else if (comando.includes("pule")) {
+            falar("Estou pulando!");
+            // Simulação de pulo (sem animação real)
+            modelo.object3D.position.y = 0.5;
+            setTimeout(() => {
+              modelo.object3D.position.y = 0;
+            }, 500);
+          } else if (comando.includes("olá") || comando.includes("oi")) {
+            falar("Olá! Como você está?");
+          } else {
+            falar("Desculpe, não entendi o comando.");
           }
         };
 
         recognition.onend = () => recognition.start();
 
-        // Ativa reconhecimento de voz após clique
+        // Inicia ao clicar na tela
         document.body.addEventListener("click", () => {
           recognition.start();
         });
+      } else {
+        alert("Seu navegador não suporta reconhecimento de voz.");
       }
     </script>
   </body>
