@@ -1,104 +1,128 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Kioto Pet</title>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <title>KiotoPet AR</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.0/dist/aframe-ar.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
     <style>
-      #ui {
+      body, html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: sans-serif;
+      }
+
+      #botao-container {
         position: fixed;
-        bottom: 12px;
+        bottom: 20px;
         left: 0;
         right: 0;
         display: flex;
         justify-content: center;
         gap: 10px;
-        z-index: 10;
+        z-index: 9999;
+        pointer-events: auto;
       }
 
-      button {
-        padding: 8px 14px;
-        border: none;
-        border-radius: 10px;
-        background: #333;
+      .botao {
+        padding: 10px 16px;
+        background-color: #444;
         color: white;
-        font-size: 14px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
         cursor: pointer;
-        opacity: 0.85;
+        display: flex;
+        align-items: center;
+        gap: 5px;
       }
 
-      button:hover {
-        opacity: 1;
-      }
-
-      .arjs-loader {
-        display: none !important;
-      }
-
-      .a-enter-vr-button {
-        display: none !important;
+      .botao:hover {
+        background-color: #666;
       }
     </style>
   </head>
-  <body style="margin: 0; overflow: hidden;">
-    <div id="ui">
-      <button id="mic">🎤 Microfone</button>
-      <button id="toggleAnim">⏸️ Pausar Animação</button>
-      <button onclick="document.querySelector('a-scene').enterAR()">🕶️ AR</button>
+
+  <body>
+    <div id="botao-container">
+      <button id="microfone" class="botao">🎙️ Microfone</button>
+      <button id="toggleAnim" class="botao">⏸️ Pausar Animação</button>
+      <button id="enter-ar" class="botao">🕶️ AR</button>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene
+      vr-mode-ui="enabled: false"
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false;"
+    >
       <a-assets>
-        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-        <audio id="fala" src="audio-nome.mp3"></audio>
+        <a-asset-item id="modeloGLB" src="kioto.glb"></a-asset-item>
       </a-assets>
 
-      <a-entity id="kioto"
-        gltf-model="#model"
+      <a-entity
+        id="personagem"
+        gltf-model="#modeloGLB"
+        scale="0.6 0.6 0.6"
         animation-mixer
-        position="0 0 -3"
-        scale="1 1 1">
-      </a-entity>
+        position="0 0 -2"
+        look-at="[camera]"
+      ></a-entity>
 
-      <a-entity camera></a-entity>
+      <a-camera position="0 1.6 0" look-controls></a-camera>
     </a-scene>
 
     <script>
-      const fala = document.getElementById('fala');
-      const micBtn = document.getElementById('mic');
-      const animBtn = document.getElementById('toggleAnim');
-      const kioto = document.getElementById('kioto');
+      const personagem = document.querySelector("#personagem");
+      const toggleAnim = document.getElementById("toggleAnim");
+      let animacaoAtiva = true;
 
-      let animRunning = true;
-
-      animBtn.addEventListener('click', () => {
-        animRunning = !animRunning;
-        kioto.setAttribute('animation-mixer', animRunning ? '' : 'timeScale: 0');
-        animBtn.textContent = animRunning ? '⏸️ Pausar Animação' : '▶️ Reproduzir Animação';
+      toggleAnim.addEventListener("click", () => {
+        if (animacaoAtiva) {
+          personagem.removeAttribute("animation-mixer");
+          toggleAnim.textContent = "▶️ Reproduzir Animação";
+        } else {
+          personagem.setAttribute("animation-mixer", "");
+          toggleAnim.textContent = "⏸️ Pausar Animação";
+        }
+        animacaoAtiva = !animacaoAtiva;
       });
 
-      // Comando de voz
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.lang = "pt-BR";
+      // Comando de voz simples
+      const comandos = {
+        "olá": "ola.mp3",
+        "bom dia": "bomdia.mp3",
+        "boa tarde": "boatarde.mp3",
+        "boa noite": "boanoite.mp3",
+        "qual seu nome": "meunomeekiotopet.mp3",
+        "quer ser meu amigo": "simadorariasermeuamigo.mp3",
+      };
 
-        recognition.onresult = (event) => {
-          const comando = event.results[0][0].transcript.toLowerCase();
-          if (comando.includes("olá") || comando.includes("ola")) {
-            fala.play();
-          }
-        };
+      const recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const reconhecedor = new recognition();
+      reconhecedor.lang = "pt-BR";
+      reconhecedor.continuous = false;
 
-        recognition.onend = () => {};
+      document.getElementById("microfone").onclick = () => {
+        reconhecedor.start();
+      };
 
-        micBtn.addEventListener('click', () => {
-          recognition.start();
+      reconhecedor.onresult = (event) => {
+        const comando = event.results[0][0].transcript.toLowerCase();
+        const audioSrc = comandos[comando];
+        if (audioSrc) {
+          new Audio(audioSrc).play();
+        }
+      };
+
+      // Forçar GLB aparecer fora do AR também
+      document.addEventListener("DOMContentLoaded", () => {
+        const enterAR = document.getElementById("enter-ar");
+        enterAR.addEventListener("click", () => {
+          document.querySelector("a-scene").enterAR();
         });
-      }
+      });
     </script>
   </body>
 </html>
