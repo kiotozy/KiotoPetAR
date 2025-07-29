@@ -1,25 +1,15 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Kioto Pet AR</title>
+    <title>Teste do Modelo GLB</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.rawgit.com/jeromeetienne/ar.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
   </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs>
+  <body>
+    <a-scene>
       <a-assets>
         <a-asset-item id="model" src="https://kiotozy.github.io/KiotoPetAR/kioto.glb"></a-asset-item>
       </a-assets>
-
-      <a-marker type="pattern" url="https://kiotozy.github.io/KiotoPetAR/kioto-marcador.patt">
-        <a-entity 
-          gltf-model="#model"
-          position="0 0 0"
-          scale="0.5 0.5 0.5"
-          rotation="0 0 0">
-        </a-entity>
-      </a-marker>
-
+      <a-entity gltf-model="#model" position="0 1 -3" scale="1 1 1"></a-entity>
       <a-entity camera></a-entity>
     </a-scene>
   </body>
