@@ -6,36 +6,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <style>
+      #btn-mic {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: #333;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 10;
+      }
+      #status {
+        position: fixed;
+        bottom: 60px;
+        left: 20px;
+        color: white;
+        background: rgba(0,0,0,0.6);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        z-index: 10;
+      }
+    </style>
   </head>
   <body style="margin: 0; overflow: hidden;">
     <a-scene>
-      <!-- Ativos -->
       <a-assets>
         <a-asset-item id="model" src="kioto.glb"></a-asset-item>
       </a-assets>
 
-      <!-- Modelo GLB -->
       <a-entity id="kioto"
         gltf-model="#model"
         animation-mixer
         position="0 0 -3"
-        scale="1 1 1"
-        rotation="0 0 0">
+        scale="1 1 1">
       </a-entity>
 
-      <!-- Câmera -->
       <a-entity camera position="0 1.6 0"></a-entity>
     </a-scene>
 
+    <!-- Botão e status -->
+    <button id="btn-mic">🎙️ Falar</button>
+    <div id="status">Microfone desligado</div>
+
     <script>
-      // Função para falar texto em voz alta
       function falar(texto) {
         const fala = new SpeechSynthesisUtterance(texto);
         fala.lang = 'pt-BR';
         speechSynthesis.speak(fala);
       }
 
-      // Reconhecimento de voz
+      const btnMic = document.getElementById("btn-mic");
+      const status = document.getElementById("status");
+      let reconhecendo = false;
+
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -44,7 +72,7 @@
 
         recognition.onresult = (event) => {
           const comando = event.results[0][0].transcript.toLowerCase();
-          console.log("Você disse:", comando);
+          status.textContent = `Você disse: "${comando}"`;
 
           const modelo = document.querySelector('#kioto');
 
@@ -52,7 +80,6 @@
             falar("Meu nome é Kioto, seu pet virtual.");
           } else if (comando.includes("pule")) {
             falar("Estou pulando!");
-            // Simulação de pulo (sem animação real)
             modelo.object3D.position.y = 0.5;
             setTimeout(() => {
               modelo.object3D.position.y = 0;
@@ -64,14 +91,28 @@
           }
         };
 
-        recognition.onend = () => recognition.start();
+        recognition.onend = () => {
+          reconhecendo = false;
+          status.textContent = "Microfone desligado";
+          btnMic.textContent = "🎙️ Falar";
+        };
 
-        // Inicia ao clicar na tela
-        document.body.addEventListener("click", () => {
-          recognition.start();
+        btnMic.addEventListener("click", () => {
+          if (!reconhecendo) {
+            recognition.start();
+            reconhecendo = true;
+            status.textContent = "Ouvindo...";
+            btnMic.textContent = "🔴 Ouvindo...";
+          } else {
+            recognition.stop();
+            reconhecendo = false;
+            status.textContent = "Microfone desligado";
+            btnMic.textContent = "🎙️ Falar";
+          }
         });
       } else {
         alert("Seu navegador não suporta reconhecimento de voz.");
+        btnMic.disabled = true;
       }
     </script>
   </body>
