@@ -6,56 +6,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.0/dist/aframe-ar.min.js"></script>
+    <style>
+      #ui {
+        position: fixed;
+        bottom: 12px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        z-index: 10;
+      }
+
+      button {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 10px;
+        background: #333;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        opacity: 0.85;
+      }
+
+      button:hover {
+        opacity: 1;
+      }
+
+      .arjs-loader {
+        display: none !important;
+      }
+
+      .a-enter-vr-button {
+        display: none !important;
+      }
+    </style>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene>
-      <!-- Ativos -->
+    <div id="ui">
+      <button id="mic">🎤 Microfone</button>
+      <button id="toggleAnim">⏸️ Pausar Animação</button>
+      <button onclick="document.querySelector('a-scene').enterAR()">🕶️ AR</button>
+    </div>
+
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
       <a-assets>
         <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-        <audio id="fala-nome" src="audio-nome.mp3"></audio>
+        <audio id="fala" src="audio-nome.mp3"></audio>
       </a-assets>
 
-      <!-- Modelo GLB com animação -->
-      <a-entity
-        id="kioto"
+      <a-entity id="kioto"
         gltf-model="#model"
         animation-mixer
         position="0 0 -3"
-        scale="1 1 1"
-        rotation="0 0 0">
+        scale="1 1 1">
       </a-entity>
 
-      <a-entity camera position="0 1.6 0"></a-entity>
+      <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- Botões -->
-    <button id="mic-button" style="position: absolute; top: 10px; left: 10px; z-index: 2;">🎤 Microfone</button>
-    <button id="toggle-animation" style="position: absolute; top: 60px; left: 10px; z-index: 2;">⏸ Pausar animação</button>
-
-    <!-- Scripts -->
     <script>
-      const audio = document.getElementById('fala-nome');
+      const fala = document.getElementById('fala');
+      const micBtn = document.getElementById('mic');
+      const animBtn = document.getElementById('toggleAnim');
       const kioto = document.getElementById('kioto');
-      const toggleBtn = document.getElementById('toggle-animation');
-      let isPlaying = true;
 
-      // Toca o áudio ao carregar (se permitido)
-      window.addEventListener("load", () => {
-        setTimeout(() => {
-          audio.play().catch(() => {
-            console.warn("Áudio bloqueado até interação do usuário");
-          });
-        }, 1500);
+      let animRunning = true;
+
+      animBtn.addEventListener('click', () => {
+        animRunning = !animRunning;
+        kioto.setAttribute('animation-mixer', animRunning ? '' : 'timeScale: 0');
+        animBtn.textContent = animRunning ? '⏸️ Pausar Animação' : '▶️ Reproduzir Animação';
       });
 
-      // Botão para pausar/retomar animação
-      toggleBtn.addEventListener("click", () => {
-        isPlaying = !isPlaying;
-        kioto.setAttribute("animation-mixer", isPlaying ? "" : "timeScale: 0");
-        toggleBtn.textContent = isPlaying ? "⏸ Pausar animação" : "▶️ Reproduzir animação";
-      });
-
-      // Comando de voz via botão
+      // Comando de voz
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -63,15 +88,14 @@
 
         recognition.onresult = (event) => {
           const comando = event.results[0][0].transcript.toLowerCase();
-          if (comando.includes("qual seu nome") || comando.includes("olá") || comando.includes("ola")) {
-            audio.play();
+          if (comando.includes("olá") || comando.includes("ola")) {
+            fala.play();
           }
         };
 
-        recognition.onend = () => {}; // não reinicia sozinho
+        recognition.onend = () => {};
 
-        // Ativa ao clicar no botão
-        document.getElementById("mic-button").addEventListener("click", () => {
+        micBtn.addEventListener('click', () => {
           recognition.start();
         });
       }
