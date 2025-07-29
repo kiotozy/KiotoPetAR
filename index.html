@@ -1,81 +1,81 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>Kioto Pet AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.2/aframe/build/aframe-ar-nft.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.2/aframe-ar-nft.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden">
+    <div style="position: absolute; top: 10px; left: 10px; z-index: 10;">
+      <button onclick="toggleAnimation()">Pausar Animação</button>
+    </div>
+    <div style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+      <button onclick="startVoice()">🎤 Microfone</button>
+    </div>
+
     <a-scene
       vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: true"
+      renderer="logarithmicDepthBuffer: true;"
       embedded
       arjs="sourceType: webcam; debugUIEnabled: false;"
-      renderer="logarithmicDepthBuffer: true;"
     >
       <a-assets>
         <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+        <audio id="resposta" src="audio-nome.mp3"></audio>
       </a-assets>
 
       <a-entity
         id="kioto"
         gltf-model="#model"
-        position="0 0 -2"
-        rotation="0 180 0"
+        position="0 0 0"
         scale="1 1 1"
         animation-mixer
         visible="true"
       ></a-entity>
 
-      <a-camera position="0 0 0" look-controls-enabled="true"></a-camera>
+      <a-camera position="0 0 0" look-controls="enabled: true"></a-camera>
     </a-scene>
 
-    <button
-      onclick="toggleAnimation()"
-      style="position: absolute; top: 20px; left: 20px; z-index: 1;"
-    >
-      Pausar Animação
-    </button>
-
-    <button
-      onclick="startVoice()"
-      style="position: absolute; top: 20px; right: 20px; z-index: 1;"
-    >
-      🎤 Microfone
-    </button>
-
-    <audio id="resposta" src="audio-nome.mp3"></audio>
-
     <script>
-      const model = document.getElementById("kioto");
-      let isPaused = false;
+      let paused = false;
+      let modelEl;
 
       function toggleAnimation() {
-        if (!model) return;
-        const mixer = model.components["animation-mixer"];
+        if (!modelEl) modelEl = document.querySelector("#kioto");
+        const mixer = modelEl.components["animation-mixer"];
         if (!mixer) return;
 
-        isPaused = !isPaused;
-        mixer.pauseAnimation(isPaused);
+        if (paused) {
+          mixer.play();
+          paused = false;
+        } else {
+          mixer.stop();
+          paused = true;
+        }
       }
 
       function startVoice() {
-        if (annyang) {
-          annyang.abort();
-          annyang.removeCommands();
+        const recognition = new (window.SpeechRecognition ||
+          window.webkitSpeechRecognition)();
+        const respostaAudio = document.getElementById("resposta");
 
-          annyang.addCommands({
-            "olá": () => {
-              document.getElementById("resposta").play();
-            },
-          });
+        recognition.lang = "pt-BR";
+        recognition.start();
 
-          annyang.start({ autoRestart: true, continuous: false });
-        } else {
-          alert("Reconhecimento de voz não suportado no seu navegador.");
-        }
+        recognition.onresult = function (event) {
+          const transcript = event.results[0][0].transcript.toLowerCase();
+          if (transcript.includes("olá") || transcript.includes("ola")) {
+            respostaAudio.play();
+          }
+        };
+
+        recognition.onerror = function (event) {
+          console.error("Erro no reconhecimento:", event.error);
+        };
       }
     </script>
   </body>
