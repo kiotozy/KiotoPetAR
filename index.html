@@ -2,26 +2,24 @@
 <html>
   <head>
     <title>Kioto Pet AR</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/2.1.8/aframe/build/aframe-ar.min.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/jeromeetienne/ar.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-    >
-      <!-- Câmera com detecção de marcador -->
-      <a-marker type="pattern" url="kioto-marcador.patt">
-        <!-- Modelo 3D -->
+    <a-scene embedded arjs>
+      <a-assets>
+        <a-asset-item id="model" src="https://kiotozy.github.io/KiotoPetAR/kioto.glb"></a-asset-item>
+      </a-assets>
+
+      <a-marker type="pattern" url="https://kiotozy.github.io/KiotoPetAR/kioto-marcador.patt">
         <a-entity 
-          gltf-model="kioto.glb" 
-          scale="0.5 0.5 0.5"
+          gltf-model="#model"
           position="0 0 0"
-          rotation="0 180 0"
-        ></a-entity>
+          scale="0.5 0.5 0.5"
+          rotation="0 0 0">
+        </a-entity>
       </a-marker>
 
-      <!-- Chão de referência -->
       <a-entity camera></a-entity>
     </a-scene>
   </body>
