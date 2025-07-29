@@ -4,8 +4,9 @@
     <title>Kioto Pet AR</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.loaders.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.2/dist/aframe-ar.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.2/aframe-ar.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
     <a-scene
@@ -16,48 +17,57 @@
       <!-- Assets -->
       <a-assets>
         <a-asset-item id="model" src="./kioto.glb"></a-asset-item>
-        <audio id="voice-response" src="./audio-nome.mp3"></audio>
+        <audio id="audio" src="./audio-nome.mp3"></audio>
       </a-assets>
 
-      <!-- Personagem diretamente na cena (sem marcador) -->
-      <a-entity id="kioto"
-                gltf-model="#model"
-                position="0 0 -1"
-                scale="1 1 1"
-                animation-mixer>
+      <!-- Personagem sem marcador -->
+      <a-entity id="character"
+        gltf-model="#model"
+        position="0 0 -2"
+        scale="1 1 1"
+        animation-mixer>
       </a-entity>
 
       <!-- Câmera -->
       <a-entity camera look-controls></a-entity>
     </a-scene>
 
-    <!-- Botão para pausar/reiniciar animação -->
-    <button id="toggleAnimation" style="position: absolute; bottom: 20px; left: 20px; z-index: 999; padding: 10px; font-size: 16px;">
-      Pausar Animação
-    </button>
+    <!-- Botões na tela -->
+    <div style="position: fixed; bottom: 20px; left: 20px; z-index: 999;">
+      <button id="toggleAnim">Pausar Animação</button>
+      <button id="micButton">🎤 Microfone</button>
+    </div>
 
     <script>
-      const kioto = document.querySelector('#kioto');
-      const btn = document.getElementById('toggleAnimation');
-      let isPaused = false;
+      const audio = document.getElementById("audio");
+      const character = document.getElementById("character");
+      const toggleAnimButton = document.getElementById("toggleAnim");
+      const micButton = document.getElementById("micButton");
+      let isPlaying = true;
 
-      btn.addEventListener('click', () => {
-        isPaused = !isPaused;
-        kioto.setAttribute('animation-mixer', isPaused ? 'timeScale: 0' : 'timeScale: 1');
-        btn.textContent = isPaused ? 'Reiniciar Animação' : 'Pausar Animação';
+      toggleAnimButton.addEventListener("click", () => {
+        if (isPlaying) {
+          character.removeAttribute("animation-mixer");
+          toggleAnimButton.textContent = "Iniciar Animação";
+        } else {
+          character.setAttribute("animation-mixer", "");
+          toggleAnimButton.textContent = "Pausar Animação";
+        }
+        isPlaying = !isPlaying;
       });
 
-      // Comando de voz
-      if (annyang) {
-        const commands = {
-          'olá': () => {
-            const audio = document.getElementById('voice-response');
-            audio.play();
-          }
-        };
-        annyang.addCommands(commands);
-        annyang.start();
-      }
+      micButton.addEventListener("click", () => {
+        if (annyang) {
+          const commands = {
+            'olá': () => {
+              audio.play();
+            }
+          };
+          annyang.removeCommands();
+          annyang.addCommands(commands);
+          annyang.start({ autoRestart: false, continuous: false });
+        }
+      });
     </script>
   </body>
 </html>
