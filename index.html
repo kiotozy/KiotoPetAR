@@ -3,67 +3,60 @@
   <head>
     <title>Kioto Pet AR</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.rawgit.com/jeromeetienne/ar.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.2/dist/aframe-ar.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs>
+    <a-scene
+      vr-mode-ui="enabled: false"
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false;">
+
       <!-- Assets -->
       <a-assets>
         <a-asset-item id="model" src="./kioto.glb"></a-asset-item>
-        <audio id="audio" src="./audio-nome.mp3"></audio>
+        <audio id="voice-response" src="./audio-nome.mp3"></audio>
       </a-assets>
 
-      <!-- Marcador -->
-      <a-marker type="pattern" url="./kioto-marcador.patt" id="marker">
-        <a-entity 
-          id="kioto"
-          gltf-model="#model"
-          animation-mixer
-          position="0 0.5 0"
-          scale="1 1 1"
-          rotation="0 0 0">
-        </a-entity>
-      </a-marker>
+      <!-- Personagem diretamente na cena (sem marcador) -->
+      <a-entity id="kioto"
+                gltf-model="#model"
+                position="0 0 -1"
+                scale="1 1 1"
+                animation-mixer>
+      </a-entity>
 
       <!-- Câmera -->
-      <a-entity camera></a-entity>
+      <a-entity camera look-controls></a-entity>
     </a-scene>
 
-    <!-- Botão para pausar/iniciar animação -->
-    <button id="toggleAnim" style="position: fixed; bottom: 20px; left: 20px; z-index: 10; padding: 10px 20px; font-size: 16px;">Pausar Animação</button>
+    <!-- Botão para pausar/reiniciar animação -->
+    <button id="toggleAnimation" style="position: absolute; bottom: 20px; left: 20px; z-index: 999; padding: 10px; font-size: 16px;">
+      Pausar Animação
+    </button>
 
-    <!-- Scripts -->
     <script>
-      const marker = document.querySelector("#marker");
-      const audio = document.querySelector("#audio");
-      const kioto = document.querySelector("#kioto");
-      const toggleBtn = document.getElementById("toggleAnim");
+      const kioto = document.querySelector('#kioto');
+      const btn = document.getElementById('toggleAnimation');
+      let isPaused = false;
 
-      let animPaused = false;
-
-      marker.addEventListener("markerFound", () => {
-        audio.play();
+      btn.addEventListener('click', () => {
+        isPaused = !isPaused;
+        kioto.setAttribute('animation-mixer', isPaused ? 'timeScale: 0' : 'timeScale: 1');
+        btn.textContent = isPaused ? 'Reiniciar Animação' : 'Pausar Animação';
       });
 
-      toggleBtn.addEventListener("click", () => {
-        animPaused = !animPaused;
-        kioto.setAttribute("animation-mixer", animPaused ? "timeScale: 0" : "timeScale: 1");
-        toggleBtn.innerText = animPaused ? "Iniciar Animação" : "Pausar Animação";
-      });
-
-      // Comando de voz com annyang
+      // Comando de voz
       if (annyang) {
         const commands = {
           'olá': () => {
-            const synth = window.speechSynthesis;
-            const utter = new SpeechSynthesisUtterance("Olá, sou o Kioto Pet.");
-            synth.speak(utter);
+            const audio = document.getElementById('voice-response');
+            audio.play();
           }
         };
-
         annyang.addCommands(commands);
-        annyang.start({ autoRestart: true, continuous: true });
+        annyang.start();
       }
     </script>
   </body>
