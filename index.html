@@ -1,59 +1,65 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Kioto Pet AR</title>
+    <title>Kioto Pet</title>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam;">
-      <!-- Assets -->
+    <a-scene>
+      <!-- Ativos -->
       <a-assets>
         <a-asset-item id="model" src="kioto.glb"></a-asset-item>
         <audio id="fala-nome" src="audio-nome.mp3"></audio>
       </a-assets>
 
-      <!-- Modelo sem marcador -->
-      <a-entity 
+      <!-- Modelo GLB com animações -->
+      <a-entity
         gltf-model="#model"
         animation-mixer
-        position="0 0 0"
+        position="0 0 -3"
         scale="1 1 1"
         rotation="0 0 0">
       </a-entity>
 
-      <!-- Câmera -->
-      <a-entity camera></a-entity>
+      <a-entity camera position="0 1.6 0"></a-entity>
     </a-scene>
 
-    <!-- Scripts -->
+    <!-- Áudio + Comando de voz -->
     <script>
-      // Fala o nome ao iniciar
+      const audio = document.getElementById('fala-nome');
+
+      // Reproduz áudio ao iniciar
       window.addEventListener("load", () => {
-        const audio = document.querySelector("#fala-nome");
-        audio.play();
+        setTimeout(() => {
+          audio.play().catch(() => {
+            console.warn("Áudio bloqueado até interação do usuário");
+          });
+        }, 1500);
       });
 
-      // Reconhecimento de voz
-      window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'pt-BR';
+      // Comandos de voz
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = "pt-BR";
 
-      recognition.onresult = function(event) {
-        const comando = event.results[0][0].transcript.toLowerCase();
-        const audio = document.querySelector("#fala-nome");
+        recognition.onresult = (event) => {
+          const comando = event.results[0][0].transcript.toLowerCase();
+          if (comando.includes("qual seu nome")) {
+            audio.play();
+          }
+        };
 
-        if (comando.includes("qual seu nome")) {
-          audio.play();
-        }
+        recognition.onend = () => recognition.start();
 
-        // você pode adicionar mais comandos aqui
-        // ex: if (comando.includes("pule")) { ... }
-      };
-
-      recognition.onend = () => recognition.start();
-      recognition.start();
+        // Ativa reconhecimento de voz após clique
+        document.body.addEventListener("click", () => {
+          recognition.start();
+        });
+      }
     </script>
   </body>
 </html>
