@@ -1,36 +1,59 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Kioto Pet - AR Sem Marcador</title>
+    <title>Kioto Pet AR</title>
+    <meta charset="utf-8" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar-nft.js"></script>
-    <script src="https://rawcdn.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      vr-mode-ui="enabled: false"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      renderer="logarithmicDepthBuffer: true;"
-    >
-      <!-- Modelo -->
+    <a-scene embedded arjs="sourceType: webcam;">
+      <!-- Assets -->
       <a-assets>
-        <a-asset-item id="model" src="https://kiotozy.github.io/KiotoPetAR/kioto.glb"></a-asset-item>
+        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+        <audio id="fala-nome" src="audio-nome.mp3"></audio>
       </a-assets>
 
-      <!-- Chão virtual para suporte -->
-      <a-entity
+      <!-- Modelo sem marcador -->
+      <a-entity 
         gltf-model="#model"
+        animation-mixer
         position="0 0 0"
         scale="1 1 1"
-        rotation="0 180 0"
-        shadow
-      ></a-entity>
+        rotation="0 0 0">
+      </a-entity>
 
-      <!-- Luz e câmera -->
-      <a-entity light="type: directional; color: #ffffff; intensity: 1" position="1 2 1"></a-entity>
-      <a-camera position="0 1.6 0"></a-camera>
+      <!-- Câmera -->
+      <a-entity camera></a-entity>
     </a-scene>
+
+    <!-- Scripts -->
+    <script>
+      // Fala o nome ao iniciar
+      window.addEventListener("load", () => {
+        const audio = document.querySelector("#fala-nome");
+        audio.play();
+      });
+
+      // Reconhecimento de voz
+      window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+
+      recognition.onresult = function(event) {
+        const comando = event.results[0][0].transcript.toLowerCase();
+        const audio = document.querySelector("#fala-nome");
+
+        if (comando.includes("qual seu nome")) {
+          audio.play();
+        }
+
+        // você pode adicionar mais comandos aqui
+        // ex: if (comando.includes("pule")) { ... }
+      };
+
+      recognition.onend = () => recognition.start();
+      recognition.start();
+    </script>
   </body>
 </html>
