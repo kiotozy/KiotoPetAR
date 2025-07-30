@@ -4,8 +4,8 @@ body {
   font-family: sans-serif;
 }
 
-#mic-button {
-  position: absolute;
+#micBtn {
+  position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
@@ -14,7 +14,7 @@ body {
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 50%;
   cursor: pointer;
   z-index: 9999;
 }
