@@ -1,129 +1,104 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
   <head>
-    <meta charset="utf-8" />
-    <title>Kioto Pet AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KiotoPetAR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar-nft.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
     <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-      }
-
-      #ui {
-        position: fixed;
-        bottom: 20px;
-        left: 0;
-        right: 0;
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        z-index: 999;
-      }
-
-      .btn {
-        padding: 10px 16px;
-        font-size: 16px;
-        border-radius: 12px;
-        border: none;
-        background-color: #ffffffcc;
-        cursor: pointer;
-        backdrop-filter: blur(5px);
-      }
-
-      .btn:hover {
-        background-color: #ffffffee;
-      }
+      body, html { margin: 0; padding: 0; overflow: hidden; }
+      .invisible-ui { display: none; }
     </style>
   </head>
-
   <body>
-    <div id="ui">
-      <button id="micBtn" class="btn">🎤 Microfone</button>
-      <button id="toggleAnimBtn" class="btn">⏸️ Pausar Animação</button>
-    </div>
-
     <a-scene
+      vr-mode-ui="enabled: false"
       embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
+      arjs="sourceType: webcam; debugUIEnabled: false;" 
       renderer="logarithmicDepthBuffer: true;"
     >
-      <!-- Assets -->
-      <a-assets>
-        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-        <audio id="audio-ola" src="ola.mp3"></audio>
-        <audio id="audio-bomdia" src="bom_dia.mp3"></audio>
-        <audio id="audio-boatarde" src="boa_tarde.mp3"></audio>
-        <audio id="audio-boanoite" src="boa_noite.mp3"></audio>
-        <audio id="audio-nome" src="qual_seu_nome.mp3"></audio>
-        <audio id="audio-amigo" src="quer_ser_meu_amigo.mp3"></audio>
-      </a-assets>
+      <!-- Câmera -->
+      <a-entity camera look-controls position="0 1.6 0"></a-entity>
 
-      <!-- Camera -->
-      <a-camera position="0 1.6 0"></a-camera>
-
-      <!-- Personagem -->
+      <!-- Personagem GLB -->
       <a-entity
-        id="kioto"
-        gltf-model="#model"
-        position="0 0 -1"
-        scale="0.8 0.8 0.8"
+        id="kioto-model"
+        gltf-model="#kioto"
+        position="0 0 -2"
+        scale="1 1 1"
         animation-mixer
       ></a-entity>
+
+      <!-- Assets -->
+      <a-assets>
+        <a-asset-item id="kioto" src="kioto.glb"></a-asset-item>
+      </a-assets>
+
+      <!-- UI em AR como plano 2D -->
+      <a-entity id="ui-buttons" position="0 0 -1.5" rotation="0 0 0">
+        <!-- Botão Microfone -->
+        <a-plane id="btn-mic" color="#444" height="0.3" width="1" position="-1.2 -1.2 0">
+          <a-text value="🎤 Microfone" align="center" position="0 0 0.01" color="#fff"></a-text>
+        </a-plane>
+
+        <!-- Botão Pausar -->
+        <a-plane id="btn-pause" color="#444" height="0.3" width="1.4" position="0 -1.2 0">
+          <a-text id="pause-text" value="⏸️ Pausar" align="center" position="0 0 0.01" color="#fff"></a-text>
+        </a-plane>
+
+        <!-- Botão AR falso (desativado visualmente) -->
+        <a-plane visible="false" id="btn-ar" color="#444" height="0.3" width="1" position="1.2 -1.2 0">
+          <a-text value="AR" align="center" position="0 0 0.01" color="#fff"></a-text>
+        </a-plane>
+      </a-entity>
     </a-scene>
 
     <script>
-      const kioto = document.getElementById('kioto');
-      const micBtn = document.getElementById('micBtn');
-      const toggleAnimBtn = document.getElementById('toggleAnimBtn');
+      let isPaused = false;
+      const model = document.querySelector('#kioto-model');
+      const btnPause = document.querySelector('#btn-pause');
+      const pauseText = document.querySelector('#pause-text');
 
-      const audioMap = {
-        "olá": document.getElementById("audio-ola"),
-        "ola": document.getElementById("audio-ola"),
-        "bom dia": document.getElementById("audio-bomdia"),
-        "boa tarde": document.getElementById("audio-boatarde"),
-        "boa noite": document.getElementById("audio-boanoite"),
-        "qual seu nome": document.getElementById("audio-nome"),
-        "quer ser meu amigo": document.getElementById("audio-amigo")
-      };
-
-      let animationPaused = false;
-
-      toggleAnimBtn.addEventListener('click', () => {
-        if (!animationPaused) {
-          kioto.removeAttribute('animation-mixer');
-          toggleAnimBtn.innerText = '▶️ Reproduzir Animação';
-        } else {
-          kioto.setAttribute('animation-mixer', '');
-          toggleAnimBtn.innerText = '⏸️ Pausar Animação';
-        }
-        animationPaused = !animationPaused;
+      btnPause.addEventListener('click', () => {
+        if (!model) return;
+        isPaused = !isPaused;
+        model.setAttribute('animation-mixer', 'timeScale', isPaused ? 0 : 1);
+        pauseText.setAttribute('value', isPaused ? '▶️ Reproduzir' : '⏸️ Pausar');
       });
 
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
+      // Reconhecimento de voz simples
+      const btnMic = document.querySelector('#btn-mic');
+      const comandos = {
+        'olá': 'ola.mp3',
+        'bom dia': 'bom_dia.mp3',
+        'boa tarde': 'boa_tarde.mp3',
+        'boa noite': 'boa_noite.mp3',
+        'qual seu nome': 'qual_seu_nome.mp3',
+        'quer ser meu amigo': 'quer_ser_meu_amigo.mp3'
+      };
+
+      let recognition;
+      if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
         recognition.lang = 'pt-BR';
+        recognition.continuous = false;
+        recognition.interimResults = false;
 
-        micBtn.addEventListener('click', () => {
-          recognition.start();
-        });
-
-        recognition.onresult = (event) => {
-          const comando = event.results[0][0].transcript.toLowerCase();
-          console.log("Comando reconhecido:", comando);
-
-          for (const chave in audioMap) {
-            if (comando.includes(chave)) {
-              audioMap[chave].play();
+        recognition.onresult = function (event) {
+          const transcript = event.results[0][0].transcript.toLowerCase();
+          console.log('Reconhecido:', transcript);
+          for (const comando in comandos) {
+            if (transcript.includes(comando)) {
+              new Audio(comandos[comando]).play();
               break;
             }
           }
         };
       }
+
+      btnMic.addEventListener('click', () => {
+        if (recognition) recognition.start();
+      });
     </script>
   </body>
 </html>
