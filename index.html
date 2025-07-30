@@ -33,16 +33,11 @@
     <!-- Interface -->
     <div id="ui">
       <button id="micBtn" class="btn">🎤 Microfone</button>
-      <button id="animBtn" class="btn">⏸️ Pausar</button>
+      <a href="#" onclick="document.querySelector('a-scene').enterAR();" class="btn">🔍 Modo AR</a>
     </div>
 
-    <!-- Cena AR -->
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-      renderer="antialias: true; alpha: true">
-      
+    <!-- Cena padrão com fundo branco -->
+    <a-scene embedded vr-mode-ui="enabled: false">
       <a-assets>
         <a-asset-item id="model" src="kioto.glb"></a-asset-item>
         <audio id="fala-ola" src="ola.mp3"></audio>
@@ -68,24 +63,7 @@
     <!-- Script -->
     <script>
       const micBtn = document.getElementById("micBtn");
-      const animBtn = document.getElementById("animBtn");
-      const model = document.querySelector("#kioto");
-      const mixer = model.components["animation-mixer"];
 
-      let animPlaying = true;
-
-      animBtn.addEventListener("click", () => {
-        if (animPlaying) {
-          model.removeAttribute("animation-mixer");
-          animBtn.innerText = "▶️ Reproduzir";
-        } else {
-          model.setAttribute("animation-mixer", "");
-          animBtn.innerText = "⏸️ Pausar";
-        }
-        animPlaying = !animPlaying;
-      });
-
-      // Voz
       if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
