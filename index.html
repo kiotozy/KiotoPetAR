@@ -1,14 +1,97 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kioto AR com WebXR</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Teste AR com Voz</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    #micBtn {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+    }
+  </style>
 </head>
 <body>
-  <button id="micBtn" title="Ativar microfone">🎙️</button>
+  <button id="micBtn">🎤</button>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
+    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js';
 
-  <script type="module" src="app.js"></script>
+    let camera, scene, renderer, controller, mixer;
+
+    init();
+    animate();
+
+    function init() {
+      console.log("Inicializando cena...");
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera();
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      scene.add(light);
+
+      const loader = new GLTFLoader();
+      loader.load('kioto.glb', (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(1, 1, 1);
+        model.position.set(0, 0, -1);
+        scene.add(model);
+        console.log("Modelo carregado!");
+
+        mixer = new THREE.AnimationMixer(model);
+        gltf.animations.forEach((clip) => {
+          mixer.clipAction(clip).play();
+        });
+      });
+
+      controller = renderer.xr.getController(0);
+      scene.add(controller);
+    }
+
+    function animate() {
+      renderer.setAnimationLoop(() => {
+        if (mixer) mixer.update(0.01);
+        renderer.render(scene, camera);
+      });
+    }
+
+    // Microfone (voz)
+    document.getElementById('micBtn').addEventListener('click', () => {
+      console.log("Microfone ativado");
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'pt-BR';
+      recognition.start();
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        console.log("Comando reconhecido:", transcript);
+        if (transcript.includes("olá")) {
+          const audio = new Audio('ola.mp3');
+          audio.play();
+        }
+      };
+    });
+  </script>
 </body>
 </html>
