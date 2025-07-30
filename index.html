@@ -1,96 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Teste AR com Voz</title>
+  <meta charset="UTF-8">
+  <title>Kioto AR Teste</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; }
-    #micBtn {
+    body { margin: 0; overflow: hidden; }
+    #mic-btn {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: rgba(0,0,0,0.7);
-      color: white;
-      border: none;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      font-size: 30px;
+      background-color: #444;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       z-index: 10;
+    }
+    #mic-btn img {
+      width: 32px;
+      height: 32px;
     }
   </style>
 </head>
 <body>
-  <button id="micBtn">🎤</button>
+  <button id="mic-btn">
+    <img src="https://cdn-icons-png.flaticon.com/512/69/69589.png" alt="Mic Icon">
+  </button>
+
   <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
-    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
-    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js';
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js';
 
-    let camera, scene, renderer, controller, mixer;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera();
 
-    init();
-    animate();
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
 
-    function init() {
-      console.log("Inicializando cena...");
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera();
+    document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
-      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+    scene.add(light);
 
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      scene.add(light);
+    let controller, reticle, model;
+    const loader = new GLTFLoader();
 
-      const loader = new GLTFLoader();
-      loader.load('kioto.glb', (gltf) => {
-        const model = gltf.scene;
-        model.scale.set(1, 1, 1);
-        model.position.set(0, 0, -1);
-        scene.add(model);
-        console.log("Modelo carregado!");
+    renderer.xr.addEventListener('sessionstart', () => {
+      const session = renderer.xr.getSession();
 
-        mixer = new THREE.AnimationMixer(model);
-        gltf.animations.forEach((clip) => {
-          mixer.clipAction(clip).play();
+      session.requestReferenceSpace('viewer').then(refSpace => {
+        session.requestHitTestSource({ space: refSpace }).then(source => {
+          controller = renderer.xr.getController(0);
+          scene.add(controller);
+
+          reticle = new THREE.Mesh(
+            new THREE.RingGeometry(0.1, 0.11, 32).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+          );
+          reticle.matrixAutoUpdate = false;
+          reticle.visible = false;
+          scene.add(reticle);
+
+          const refSpace = renderer.xr.getReferenceSpace();
+
+          renderer.setAnimationLoop((timestamp, frame) => {
+            if (frame) {
+              const viewerPose = frame.getViewerPose(refSpace);
+              if (viewerPose) {
+                const hitTestResults = frame.getHitTestResults(source);
+                if (hitTestResults.length > 0 && !model) {
+                  const hit = hitTestResults[0];
+                  const pose = hit.getPose(refSpace);
+
+                  reticle.visible = true;
+                  reticle.matrix.fromArray(pose.transform.matrix);
+
+                  loader.load('kioto.glb', gltf => {
+                    model = gltf.scene;
+                    model.scale.set(1, 1, 1);
+                    model.position.setFromMatrixPosition(reticle.matrix);
+                    scene.add(model);
+
+                    const mixer = new THREE.AnimationMixer(model);
+                    mixer.clipAction(gltf.animations[0]).play();
+
+                    renderer.setAnimationLoop(() => {
+                      mixer.update(0.016);
+                      renderer.render(scene, camera);
+                    });
+                  });
+                }
+              }
+            }
+          });
         });
       });
-
-      controller = renderer.xr.getController(0);
-      scene.add(controller);
-    }
-
-    function animate() {
-      renderer.setAnimationLoop(() => {
-        if (mixer) mixer.update(0.01);
-        renderer.render(scene, camera);
-      });
-    }
-
-    // Microfone (voz)
-    document.getElementById('micBtn').addEventListener('click', () => {
-      console.log("Microfone ativado");
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = 'pt-BR';
-      recognition.start();
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript.toLowerCase();
-        console.log("Comando reconhecido:", transcript);
-        if (transcript.includes("olá")) {
-          const audio = new Audio('ola.mp3');
-          audio.play();
-        }
-      };
     });
   </script>
 </body>
