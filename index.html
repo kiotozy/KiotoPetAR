@@ -2,13 +2,12 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Kioto AR Teste</title>
+  <title>Kioto AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"></script>
   <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js"></script>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; background: #000; }
     #mic-btn {
       position: fixed;
       bottom: 20px;
@@ -17,7 +16,7 @@
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background-color: #444;
+      background-color: #222;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -27,39 +26,73 @@
       width: 32px;
       height: 32px;
     }
+    #msg {
+      position: absolute;
+      top: 40%;
+      width: 100%;
+      text-align: center;
+      color: white;
+      font-family: sans-serif;
+    }
   </style>
 </head>
 <body>
+  <div id="msg">Carregando AR...</div>
   <button id="mic-btn">
-    <img src="https://cdn-icons-png.flaticon.com/512/69/69589.png" alt="Mic Icon">
+    <img src="https://cdn-icons-png.flaticon.com/512/69/69589.png" alt="Mic">
   </button>
 
   <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
     import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js';
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera();
+    let scene, camera, renderer, controller, reticle, model, mixer;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.xr.enabled = true;
-    document.body.appendChild(renderer.domElement);
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+        if (supported) {
+          startAR();
+        } else {
+          document.getElementById('msg').textContent = 'Seu dispositivo não suporta AR';
+        }
+      });
+    } else {
+      document.getElementById('msg').textContent = 'WebXR não disponível';
+    }
 
-    document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+    function startAR() {
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera();
 
-    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-    scene.add(light);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
 
-    let controller, reticle, model;
-    const loader = new GLTFLoader();
+      document.getElementById('msg').remove();
 
-    renderer.xr.addEventListener('sessionstart', () => {
-      const session = renderer.xr.getSession();
+      navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test', 'local']
+      }).then(session => {
+        renderer.xr.setSession(session);
 
-      session.requestReferenceSpace('viewer').then(refSpace => {
-        session.requestHitTestSource({ space: refSpace }).then(source => {
+        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+        scene.add(light);
+
+        const loader = new GLTFLoader();
+
+        let refSpace = null;
+        let hitTestSource = null;
+
+        session.requestReferenceSpace('viewer').then(space => {
+          session.requestHitTestSource({ space }).then(source => {
+            hitTestSource = source;
+          });
+        });
+
+        session.requestReferenceSpace('local').then(space => {
+          refSpace = space;
+
           controller = renderer.xr.getController(0);
           scene.add(controller);
 
@@ -71,41 +104,35 @@
           reticle.visible = false;
           scene.add(reticle);
 
-          const refSpace = renderer.xr.getReferenceSpace();
-
           renderer.setAnimationLoop((timestamp, frame) => {
-            if (frame) {
+            if (frame && hitTestSource) {
               const viewerPose = frame.getViewerPose(refSpace);
-              if (viewerPose) {
-                const hitTestResults = frame.getHitTestResults(source);
-                if (hitTestResults.length > 0 && !model) {
-                  const hit = hitTestResults[0];
-                  const pose = hit.getPose(refSpace);
+              const hitTestResults = frame.getHitTestResults(hitTestSource);
 
-                  reticle.visible = true;
-                  reticle.matrix.fromArray(pose.transform.matrix);
+              if (hitTestResults.length > 0 && !model) {
+                const hit = hitTestResults[0];
+                const pose = hit.getPose(refSpace);
+                reticle.visible = true;
+                reticle.matrix.fromArray(pose.transform.matrix);
 
-                  loader.load('kioto.glb', gltf => {
-                    model = gltf.scene;
-                    model.scale.set(1, 1, 1);
-                    model.position.setFromMatrixPosition(reticle.matrix);
-                    scene.add(model);
+                loader.load('kioto.glb', gltf => {
+                  model = gltf.scene;
+                  model.scale.set(1, 1, 1);
+                  model.position.setFromMatrixPosition(reticle.matrix);
+                  scene.add(model);
 
-                    const mixer = new THREE.AnimationMixer(model);
-                    mixer.clipAction(gltf.animations[0]).play();
-
-                    renderer.setAnimationLoop(() => {
-                      mixer.update(0.016);
-                      renderer.render(scene, camera);
-                    });
-                  });
-                }
+                  mixer = new THREE.AnimationMixer(model);
+                  mixer.clipAction(gltf.animations[0]).play();
+                });
               }
             }
+
+            if (mixer) mixer.update(0.016);
+            renderer.render(scene, camera);
           });
         });
       });
-    });
+    }
   </script>
 </body>
 </html>
