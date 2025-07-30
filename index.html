@@ -1,111 +1,119 @@
 <!DOCTYPE html>
-<html lang="pt">
-<head>
-  <meta charset="UTF-8">
-  <title>Kioto Pet AR</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-    #botao-microfone, #botao-animacao {
-      position: absolute;
-      bottom: 20px;
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      padding: 10px;
-      border-radius: 10px;
-      font-size: 16px;
-      border: none;
-    }
-    #botao-microfone { left: 20px; }
-    #botao-animacao { right: 20px; }
-  </style>
-</head>
-<body>
-  <button id="botao-microfone">🎤 Microfone</button>
-  <button id="botao-animacao">⏸️ Pausar</button>
+<html>
+  <head>
+    <title>Kioto Pet AR</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <style>
+      #ui {
+        position: absolute;
+        bottom: 10px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        z-index: 10;
+      }
 
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
-    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
-    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/webxr/ARButton.js';
+      .btn {
+        background-color: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
 
-    let camera, scene, renderer;
-    let model, mixer;
-    let clock = new THREE.Clock();
-    let isPaused = false;
+    <!-- Interface -->
+    <div id="ui">
+      <button id="micBtn" class="btn">🎤 Microfone</button>
+      <button id="animBtn" class="btn">⏸️ Pausar</button>
+    </div>
 
-    init();
+    <!-- Cena AR -->
+    <a-scene
+      embedded
+      arjs="sourceType: webcam; debugUIEnabled: false;"
+      vr-mode-ui="enabled: false"
+      renderer="antialias: true; alpha: true">
+      
+      <a-assets>
+        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+        <audio id="fala-ola" src="fala-ola.mp3"></audio>
+        <audio id="fala-bomdia" src="fala-bomdia.mp3"></audio>
+        <audio id="fala-boatarde" src="fala-boatarde.mp3"></audio>
+        <audio id="fala-boanoite" src="fala-boanoite.mp3"></audio>
+        <audio id="fala-nome" src="fala-nome.mp3"></audio>
+        <audio id="fala-amigo" src="fala-amigo.mp3"></audio>
+      </a-assets>
 
-    function init() {
-      scene = new THREE.Scene();
+      <!-- Personagem GLB -->
+      <a-entity id="kioto"
+        gltf-model="#model"
+        animation-mixer
+        position="0 0 -3"
+        scale="1 1 1"
+        rotation="0 0 0">
+      </a-entity>
 
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+      <a-entity camera></a-entity>
+    </a-scene>
 
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      document.body.appendChild(renderer.domElement);
+    <!-- Script -->
+    <script>
+      const micBtn = document.getElementById("micBtn");
+      const animBtn = document.getElementById("animBtn");
+      const model = document.querySelector("#kioto");
+      const mixer = model.components["animation-mixer"];
 
-      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+      let animPlaying = true;
 
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      light.position.set(0.5, 1, 0.25);
-      scene.add(light);
-
-      const loader = new GLTFLoader();
-      loader.load('kioto.glb', (gltf) => {
-        model = gltf.scene;
-        model.scale.set(1, 1, 1);
-        model.position.set(0, 0, -1);
-        scene.add(model);
-
-        if (gltf.animations.length) {
-          mixer = new THREE.AnimationMixer(model);
-          gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
-        }
-      });
-
-      renderer.setAnimationLoop(() => {
-        if (mixer && !isPaused) mixer.update(clock.getDelta());
-        renderer.render(scene, camera);
-      });
-
-      document.getElementById('botao-animacao').onclick = () => {
-        isPaused = !isPaused;
-        const btn = document.getElementById('botao-animacao');
-        btn.textContent = isPaused ? '▶️ Reproduzir' : '⏸️ Pausar';
-      };
-
-      document.getElementById('botao-microfone').onclick = () => {
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          const recognition = new SpeechRecognition();
-          recognition.lang = 'pt-BR';
-
-          recognition.onresult = (event) => {
-            const comando = event.results[0][0].transcript.toLowerCase();
-            if (comando.includes("olá")) {
-              new Audio("ola.mp3").play();
-            } else if (comando.includes("bom dia")) {
-              new Audio("bomdia.mp3").play();
-            } else if (comando.includes("boa tarde")) {
-              new Audio("boatarde.mp3").play();
-            } else if (comando.includes("boa noite")) {
-              new Audio("boanoite.mp3").play();
-            } else if (comando.includes("qual seu nome")) {
-              new Audio("nome.mp3").play();
-            } else if (comando.includes("quer ser meu amigo")) {
-              new Audio("amigo.mp3").play();
-            }
-          };
-
-          recognition.start();
+      animBtn.addEventListener("click", () => {
+        if (animPlaying) {
+          model.removeAttribute("animation-mixer");
+          animBtn.innerText = "▶️ Reproduzir";
         } else {
-          alert("Reconhecimento de voz não suportado");
+          model.setAttribute("animation-mixer", "");
+          animBtn.innerText = "⏸️ Pausar";
         }
-      };
-    }
-  </script>
-</body>
+        animPlaying = !animPlaying;
+      });
+
+      // Voz
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = "pt-BR";
+
+        const comandos = {
+          "olá": "fala-ola",
+          "bom dia": "fala-bomdia",
+          "boa tarde": "fala-boatarde",
+          "boa noite": "fala-boanoite",
+          "qual seu nome": "fala-nome",
+          "quer ser meu amigo": "fala-amigo"
+        };
+
+        recognition.onresult = (event) => {
+          const fala = event.results[0][0].transcript.toLowerCase();
+          for (let chave in comandos) {
+            if (fala.includes(chave)) {
+              document.getElementById(comandos[chave]).play();
+              break;
+            }
+          }
+        };
+
+        recognition.onend = () => recognition.start();
+
+        micBtn.addEventListener("click", () => recognition.start());
+      }
+    </script>
+  </body>
 </html>
