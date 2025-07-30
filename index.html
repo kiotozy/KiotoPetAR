@@ -1,119 +1,38 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Kioto Pet AR</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    
-    <!-- A-Frame + AR.js -->
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar-nft.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+<script>
+  const model = document.querySelector('#avatar');
 
-    <style>
-      body { margin: 0; overflow: hidden; }
-      #ui {
-        position: absolute;
-        bottom: 10px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        z-index: 100;
-      }
-      .btn {
-        background-color: rgba(0,0,0,0.6);
-        color: white;
-        border: none;
-        padding: 10px 14px;
-        border-radius: 12px;
-        font-size: 14px;
-      }
-    </style>
-  </head>
+  function playAnimation() {
+    model.setAttribute('animation-mixer', '');
+  }
 
-  <body>
-    <!-- Botões -->
-    <div id="ui">
-      <button id="micBtn" class="btn">🎤 Microfone</button>
-    </div>
+  function stopAnimation() {
+    model.removeAttribute('animation-mixer');
+  }
 
-    <!-- CENA AR.js com rastreamento de plano SEM marcador -->
-    <a-scene
-      embedded
-      vr-mode-ui="enabled: false"
-      renderer="antialias: true; alpha: true"
-      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-    >
-      <!-- Ativos (modelos + áudios) -->
-      <a-assets>
-        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-        <audio id="fala-ola" src="ola.mp3"></audio>
-        <audio id="fala-bomdia" src="bom_dia.mp3"></audio>
-        <audio id="fala-boatarde" src="boa_tarde.mp3"></audio>
-        <audio id="fala-boanoite" src="boa_noite.mp3"></audio>
-        <audio id="fala-nome" src="qual_seu_nome.mp3"></audio>
-        <audio id="fala-amigo" src="quer_ser_meu_amigo.mp3"></audio>
-        <audio id="fala-comandos" src="comandos.mp3"></audio>
-      </a-assets>
+  function playAudio(file) {
+    new Audio(file).play();
+  }
 
-      <!-- Luzes para o modelo aparecer -->
-      <a-entity light="type: ambient; intensity: 1"></a-entity>
-      <a-entity light="type: directional; intensity: 0.6" position="1 2 1"></a-entity>
+  document.getElementById('microphoneBtn').onclick = () => {
+    if (annyang) {
+      annyang.start({ autoRestart: true, continuous: false });
 
-      <!-- Personagem (com animação) ancorado ao plano detectado -->
-      <a-entity
-        id="kioto"
-        gltf-model="#model"
-        animation-mixer
-        scale="1 1 1"
-        position="0 0 0"
-        rotation="0 0 0"
-        arjs-anchor
-        arjs-hit-test
-      ></a-entity>
+      const commands = {
+        'olá': () => playAudio('ola.mp3'),
+        'bom dia': () => playAudio('bom_dia.mp3'),
+        'boa tarde': () => playAudio('boa_tarde.mp3'),
+        'boa noite': () => playAudio('boa_noite.mp3'),
+        'qual seu nome': () => playAudio('qual_seu_nome.mp3'),
+        'quer ser meu amigo': () => playAudio('quer_ser_meu_amigo.mp3'),
+        'comandos': () => playAudio('comandos.mp3'),
+        'dançar': () => playAnimation(),
+        'parar': () => stopAnimation()
+      };
 
-      <!-- Câmera -->
-      <a-entity camera></a-entity>
-    </a-scene>
-
-    <!-- Script de Voz -->
-    <script>
-      const micBtn = document.getElementById("micBtn");
-
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.lang = "pt-BR";
-
-        const comandos = {
-          "olá": "fala-ola",
-          "bom dia": "fala-bomdia",
-          "boa tarde": "fala-boatarde",
-          "boa noite": "fala-boanoite",
-          "qual seu nome": "fala-nome",
-          "quer ser meu amigo": "fala-amigo",
-          "comandos": "fala-comandos"
-        };
-
-        recognition.onresult = (event) => {
-          const fala = event.results[0][0].transcript.toLowerCase();
-          console.log("Você disse:", fala);
-          for (let chave in comandos) {
-            if (fala.includes(chave)) {
-              document.getElementById(comandos[chave]).play();
-              break;
-            }
-          }
-        };
-
-        micBtn.addEventListener("click", () => {
-          recognition.start();
-        });
-      } else {
-        micBtn.disabled = true;
-        micBtn.innerText = "🎤 Microfone não suportado";
-      }
-    </script>
-  </body>
-</html>
+      annyang.addCommands(commands);
+      alert("Comando de voz ativado!");
+    } else {
+      alert("Seu navegador não suporta reconhecimento de voz.");
+    }
+  };
+</script>
