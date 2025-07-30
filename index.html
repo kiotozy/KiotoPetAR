@@ -1,146 +1,111 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="utf-8" />
-    <title>Kioto Pet AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: sans-serif;
-      }
-      #ui {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 10px;
-        z-index: 10;
-      }
-      .btn {
-        background: #444;
-        color: white;
-        padding: 10px 14px;
-        border: none;
-        border-radius: 12px;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="ui">
-      <button class="btn" id="micBtn">🎙 Microfone</button>
-      <button class="btn" id="toggleAnimBtn">⏸ Pausar</button>
-    </div>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Kioto Pet AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+    #botao-microfone, #botao-animacao {
+      position: absolute;
+      bottom: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 16px;
+      border: none;
+    }
+    #botao-microfone { left: 20px; }
+    #botao-animacao { right: 20px; }
+  </style>
+</head>
+<body>
+  <button id="botao-microfone">🎤 Microfone</button>
+  <button id="botao-animacao">⏸️ Pausar</button>
 
-    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/jsm/webxr/ARButton.js"></script>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js';
+    import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
+    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/webxr/ARButton.js';
 
-    <script>
-      let camera, scene, renderer, controller;
-      let model, mixer, clock;
-      let animPlaying = true;
+    let camera, scene, renderer;
+    let model, mixer;
+    let clock = new THREE.Clock();
+    let isPaused = false;
 
-      init();
+    init();
 
-      function init() {
-        const container = document.body;
+    function init() {
+      scene = new THREE.Scene();
 
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(
-          70,
-          window.innerWidth / window.innerHeight,
-          0.01,
-          20
-        );
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.xr.enabled = true;
-        container.appendChild(renderer.domElement);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
 
-        document.body.appendChild(
-          ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] })
-        );
+      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-        clock = new THREE.Clock();
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      light.position.set(0.5, 1, 0.25);
+      scene.add(light);
 
-        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-        light.position.set(0.5, 1, 0.25);
-        scene.add(light);
+      const loader = new GLTFLoader();
+      loader.load('kioto.glb', (gltf) => {
+        model = gltf.scene;
+        model.scale.set(1, 1, 1);
+        model.position.set(0, 0, -1);
+        scene.add(model);
 
-        const loader = new THREE.GLTFLoader();
-        loader.load('kioto.glb', function (gltf) {
-          model = gltf.scene;
-          model.scale.set(0.5, 0.5, 0.5);
-          model.visible = false;
-          scene.add(model);
-
+        if (gltf.animations.length) {
           mixer = new THREE.AnimationMixer(model);
           gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
-        });
-
-        controller = renderer.xr.getController(0);
-        controller.addEventListener('select', onSelect);
-        scene.add(controller);
-
-        function onSelect() {
-          if (model && !model.visible) {
-            model.position.set(0, 0, -0.5);
-            model.visible = true;
-          }
         }
+      });
 
-        document.getElementById('toggleAnimBtn').addEventListener('click', () => {
-          if (!mixer) return;
-          animPlaying = !animPlaying;
-          mixer.timeScale = animPlaying ? 1 : 0;
-        });
+      renderer.setAnimationLoop(() => {
+        if (mixer && !isPaused) mixer.update(clock.getDelta());
+        renderer.render(scene, camera);
+      });
 
-        document.getElementById('micBtn').addEventListener('click', () => {
-          startVoiceRecognition();
-        });
+      document.getElementById('botao-animacao').onclick = () => {
+        isPaused = !isPaused;
+        const btn = document.getElementById('botao-animacao');
+        btn.textContent = isPaused ? '▶️ Reproduzir' : '⏸️ Pausar';
+      };
 
-        renderer.setAnimationLoop(() => {
-          const delta = clock.getDelta();
-          if (mixer && animPlaying) mixer.update(delta);
-          renderer.render(scene, camera);
-        });
-      }
+      document.getElementById('botao-microfone').onclick = () => {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const recognition = new SpeechRecognition();
+          recognition.lang = 'pt-BR';
 
-      function startVoiceRecognition() {
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'pt-BR';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.start();
-
-        recognition.onresult = function (event) {
-          const command = event.results[0][0].transcript.toLowerCase();
-          const audioMap = {
-            'olá': 'ola.mp3',
-            'bom dia': 'bom_dia.mp3',
-            'boa tarde': 'boa_tarde.mp3',
-            'boa noite': 'boa_noite.mp3',
-            'qual seu nome': 'qual_seu_nome.mp3',
-            'quer ser meu amigo': 'quer_ser_meu_amigo.mp3',
+          recognition.onresult = (event) => {
+            const comando = event.results[0][0].transcript.toLowerCase();
+            if (comando.includes("olá")) {
+              new Audio("ola.mp3").play();
+            } else if (comando.includes("bom dia")) {
+              new Audio("bomdia.mp3").play();
+            } else if (comando.includes("boa tarde")) {
+              new Audio("boatarde.mp3").play();
+            } else if (comando.includes("boa noite")) {
+              new Audio("boanoite.mp3").play();
+            } else if (comando.includes("qual seu nome")) {
+              new Audio("nome.mp3").play();
+            } else if (comando.includes("quer ser meu amigo")) {
+              new Audio("amigo.mp3").play();
+            }
           };
 
-          for (const key in audioMap) {
-            if (command.includes(key)) {
-              new Audio(audioMap[key]).play();
-              break;
-            }
-          }
-        };
-      }
-    </script>
-  </body>
+          recognition.start();
+        } else {
+          alert("Reconhecimento de voz não suportado");
+        }
+      };
+    }
+  </script>
+</body>
 </html>
