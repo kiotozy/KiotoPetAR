@@ -1,112 +1,17 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Kioto AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.2/dist/aframe-ar.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/annyang@2.6.1/dist/annyang.min.js"></script>
-    <style>
-      #ui {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 12px;
-        z-index: 2;
-      }
-      button {
-        padding: 10px 16px;
-        border: none;
-        border-radius: 12px;
-        font-size: 16px;
-        background: rgba(0, 0, 0, 0.6);
-        color: white;
-        cursor: pointer;
-      }
-    </style>
-  </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      xrweb
-      webxr="optionalFeatures: hit-test; requiredFeatures: local-floor;"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-      renderer="colorManagement: true; physicallyCorrectLights: true;"
-      raycaster="objects: .clickable"
-    >
-      <!-- Asset para o modelo -->
-      <a-assets>
-        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-      </a-assets>
-    </a-scene>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kioto Pet AR</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <button id="botao-microfone" onclick="iniciarReconhecimento()">🎤</button>
 
-    <!-- Botões -->
-    <div id="ui">
-      <button id="microphoneBtn">🎙️ Voz</button>
-    </div>
-
-    <script>
-      const scene = document.querySelector("a-scene");
-      let model;
-      let modelPlaced = false;
-
-      scene.addEventListener("ar-hit-test-select", (e) => {
-        if (!modelPlaced) {
-          model = document.createElement("a-entity");
-          model.setAttribute("gltf-model", "#model");
-          model.setAttribute("position", e.detail.position);
-          model.setAttribute("rotation", "0 180 0");
-          model.setAttribute("scale", "0.5 0.5 0.5");
-          model.setAttribute("animation-mixer", "");
-          model.classList.add("clickable");
-          scene.appendChild(model);
-          modelPlaced = true;
-          alert("🐾 Modelo adicionado! Agora você pode usar comandos de voz.");
-        }
-      });
-
-      function playAudio(file) {
-        const audio = new Audio(file);
-        audio.play();
-      }
-
-      function playAnimation() {
-        if (model) {
-          model.setAttribute("animation-mixer", "");
-        }
-      }
-
-      function stopAnimation() {
-        if (model) {
-          model.removeAttribute("animation-mixer");
-        }
-      }
-
-      document.getElementById("microphoneBtn").onclick = () => {
-        if (annyang) {
-          const commands = {
-            "olá": () => playAudio("ola.mp3"),
-            "bom dia": () => playAudio("bom_dia.mp3"),
-            "boa tarde": () => playAudio("boa_tarde.mp3"),
-            "boa noite": () => playAudio("boa_noite.mp3"),
-            "qual seu nome": () => playAudio("qual_seu_nome.mp3"),
-            "quer ser meu amigo": () => playAudio("quer_ser_meu_amigo.mp3"),
-            "comandos": () => playAudio("comandos.mp3"),
-            "dançar": () => playAnimation(),
-            "parar": () => stopAnimation()
-          };
-
-          annyang.addCommands(commands);
-          annyang.start({ autoRestart: false, continuous: true });
-          alert("🎤 Comando de voz ativado!");
-        } else {
-          alert("❌ Navegador não suporta reconhecimento de voz.");
-        }
-      };
-    </script>
-  </body>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
 </html>
