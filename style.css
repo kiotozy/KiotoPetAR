@@ -1,25 +1,26 @@
 body {
   margin: 0;
   overflow: hidden;
-  background: #000;
+  font-family: sans-serif;
 }
 
-#xr-canvas {
-  width: 100vw;
-  height: 100vh;
-  display: block;
-}
-
-#micButton {
-  position: absolute;
+#botao-microfone {
+  position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 12px 20px;
-  font-size: 16px;
-  border-radius: 10px;
+  font-size: 2rem;
+  background: white;
   border: none;
-  background: #ffffffcc;
-  color: #000;
-  z-index: 999;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.2s ease;
+}
+
+#botao-microfone:hover {
+  transform: translateX(-50%) scale(1.1);
 }
