@@ -1,38 +1,110 @@
-<script>
-  const model = document.querySelector('#avatar');
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kioto Pet AR</title>
 
-  function playAnimation() {
-    model.setAttribute('animation-mixer', '');
-  }
+    <!-- A-Frame + AR.js -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
 
-  function stopAnimation() {
-    model.removeAttribute('animation-mixer');
-  }
+    <!-- Reconhecimento de voz -->
+    <script src="https://unpkg.com/annyang@2.6.1/dist/annyang.min.js"></script>
 
-  function playAudio(file) {
-    new Audio(file).play();
-  }
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
 
-  document.getElementById('microphoneBtn').onclick = () => {
-    if (annyang) {
-      annyang.start({ autoRestart: true, continuous: false });
+      #microphoneBtn {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 18px;
+        border-radius: 12px;
+        z-index: 9999;
+        cursor: pointer;
+      }
+    </style>
+  </head>
 
-      const commands = {
-        'olá': () => playAudio('ola.mp3'),
-        'bom dia': () => playAudio('bom_dia.mp3'),
-        'boa tarde': () => playAudio('boa_tarde.mp3'),
-        'boa noite': () => playAudio('boa_noite.mp3'),
-        'qual seu nome': () => playAudio('qual_seu_nome.mp3'),
-        'quer ser meu amigo': () => playAudio('quer_ser_meu_amigo.mp3'),
-        'comandos': () => playAudio('comandos.mp3'),
-        'dançar': () => playAnimation(),
-        'parar': () => stopAnimation()
+  <body>
+    <!-- Botão para ativar microfone -->
+    <button id="microphoneBtn">🎤 Ativar Voz</button>
+
+    <!-- Cena A-Frame com AR.js -->
+    <a-scene
+      vr-mode-ui="enabled: false"
+      embedded
+      renderer="logarithmicDepthBuffer: true;"
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+    >
+      <!-- Pré-carregamento do modelo -->
+      <a-assets>
+        <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+      </a-assets>
+
+      <!-- Modelo GLB com animação -->
+      <a-entity
+        id="avatar"
+        gltf-model="#model"
+        position="0 0 0"
+        scale="0.5 0.5 0.5"
+        animation-mixer
+      ></a-entity>
+
+      <!-- Câmera AR -->
+      <a-camera position="0 0 0" look-controls-enabled="false"></a-camera>
+    </a-scene>
+
+    <!-- Script de comandos de voz -->
+    <script>
+      const model = document.querySelector("#avatar");
+
+      // Inicia a animação
+      function playAnimation() {
+        model.setAttribute("animation-mixer", "");
+      }
+
+      // Para a animação
+      function stopAnimation() {
+        model.removeAttribute("animation-mixer");
+      }
+
+      // Reproduz áudio .mp3
+      function playAudio(file) {
+        new Audio(file).play();
+      }
+
+      // Botão ativa comandos de voz
+      document.getElementById("microphoneBtn").onclick = () => {
+        if (annyang) {
+          const commands = {
+            "olá": () => playAudio("ola.mp3"),
+            "bom dia": () => playAudio("bom_dia.mp3"),
+            "boa tarde": () => playAudio("boa_tarde.mp3"),
+            "boa noite": () => playAudio("boa_noite.mp3"),
+            "qual seu nome": () => playAudio("qual_seu_nome.mp3"),
+            "quer ser meu amigo": () => playAudio("quer_ser_meu_amigo.mp3"),
+            "comandos": () => playAudio("comandos.mp3"),
+            "dançar": () => playAnimation(),
+            "parar": () => stopAnimation()
+          };
+
+          annyang.addCommands(commands);
+          annyang.start({ autoRestart: true, continuous: false });
+
+          alert("🎙️ Comando de voz ativado!");
+        } else {
+          alert("❌ Seu navegador não suporta reconhecimento de voz.");
+        }
       };
-
-      annyang.addCommands(commands);
-      alert("Comando de voz ativado!");
-    } else {
-      alert("Seu navegador não suporta reconhecimento de voz.");
-    }
-  };
-</script>
+    </script>
+  </body>
+</html>
