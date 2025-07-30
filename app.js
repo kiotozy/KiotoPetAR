@@ -1,71 +1,120 @@
-// app.js
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
+import * as THREE from 'https://cdn.skypack.dev/three@0.152.2';
+import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
 
-let camera, scene, renderer, controller;
-let model, mixer;
+let mixer, model;
+let isAnimating = false;
 
-init();
-animate();
+// Cena e renderizador
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas: document.getElementById('xr-canvas') });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+document.body.appendChild(THREE.WEBGL.isWebGLAvailable() ? renderer.domElement : document.createElement('div'));
 
-function init() {
-  // Cena
-  scene = new THREE.Scene();
+// Iluminação
+const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+scene.add(light);
 
-  // Câmera
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+// Carrega o modelo GLB
+const loader = new GLTFLoader();
+loader.load('kioto.glb', (gltf) => {
+  model = gltf.scene;
+  scene.add(model);
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, canvas: document.getElementById('xr-canvas') });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  document.body.appendChild(ARButton.createButton(renderer));
+  mixer = new THREE.AnimationMixer(model);
+  gltf.animations.forEach((clip) => {
+    const action = mixer.clipAction(clip);
+    action.play();
+    action.paused = true; // Começa pausado
+  });
+}, undefined, console.error);
 
-  // Luz
-  const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-  light.position.set(0.5, 1, 0.25);
-  scene.add(light);
+// Áudios
+const sounds = {
+  "olá": new Audio("ola.mp3"),
+  "bom dia": new Audio("bom_dia.mp3"),
+  "boa tarde": new Audio("boa_tarde.mp3"),
+  "boa noite": new Audio("boa_noite.mp3"),
+  "qual seu nome": new Audio("qual_seu_nome.mp3"),
+  "quer ser meu amigo": new Audio("quer_ser_meu_amigo.mp3"),
+  "comando": new Audio("comandos.mp3"),
+  "comandos": new Audio("comandos.mp3")
+};
 
-  // Carrega modelo
-  const loader = new GLTFLoader();
-  loader.load('kioto.glb', gltf => {
-    model = gltf.scene;
-    model.scale.set(0.5, 0.5, 0.5);
-    scene.add(model);
+// Reconhecimento de voz
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+recognition.lang = "pt-BR";
+recognition.continuous = false;
+recognition.interimResults = false;
 
-    if (gltf.animations && gltf.animations.length) {
-      mixer = new THREE.AnimationMixer(model);
-      gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+recognition.onresult = (event) => {
+  const transcript = event.results[0][0].transcript.toLowerCase();
+  console.log("Comando:", transcript);
+
+  if (transcript.includes("dançar")) {
+    if (mixer) {
+      mixer._actions.forEach(action => action.paused = false);
+      isAnimating = true;
+    }
+  } else if (transcript.includes("parar")) {
+    if (mixer) {
+      mixer._actions.forEach(action => action.paused = true);
+      isAnimating = false;
+    }
+  } else {
+    for (const key in sounds) {
+      if (transcript.includes(key)) {
+        sounds[key].play();
+        break;
+      }
+    }
+  }
+};
+
+document.getElementById("micButton").addEventListener("click", () => {
+  recognition.start();
+});
+
+// Inicia sessão AR
+document.body.addEventListener('click', () => {
+  navigator.xr?.isSessionSupported('immersive-ar').then((supported) => {
+    if (supported) {
+      navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test', 'local-floor']
+      }).then(onSessionStarted);
     }
   });
+}, { once: true });
 
-  // Controller AR
-  controller = renderer.xr.getController(0);
-  scene.add(controller);
+function onSessionStarted(session) {
+  renderer.xr.setSession(session);
+  const refSpacePromise = session.requestReferenceSpace('local-floor');
+  const viewerSpacePromise = session.requestReferenceSpace('viewer');
 
-  // Eventos botão microfone
-  const micBtn = document.getElementById('micBtn');
-  micBtn.addEventListener('click', () => {
-    const utter = new SpeechSynthesisUtterance('Oi! Eu sou o Kioto Pet!');
-    speechSynthesis.speak(utter);
-  });
+  Promise.all([refSpacePromise, viewerSpacePromise]).then(([refSpace, viewerSpace]) => {
+    session.requestHitTestSource({ space: viewerSpace }).then((hitTestSource) => {
+      session.addEventListener('end', () => {
+        hitTestSource.cancel();
+      });
 
-  // Resize
-  window.addEventListener('resize', onWindowResize);
-}
+      renderer.setAnimationLoop((timestamp, frame) => {
+        if (model && frame) {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          if (hitTestResults.length > 0 && !model.placed) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(refSpace);
+            model.position.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
+            model.placed = true;
+          }
+        }
 
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function animate() {
-  renderer.setAnimationLoop(() => {
-    const delta = clock.getDelta();
-    if (mixer) mixer.update(delta);
-    renderer.render(scene, camera);
+        const delta = clock.getDelta();
+        if (mixer && isAnimating) mixer.update(delta);
+        renderer.render(scene, camera);
+      });
+    });
   });
 }
 
