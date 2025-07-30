@@ -2,16 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kioto Pet AR</title>
+  <title>KiotoPet AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module" src="app.js"></script>
   <link rel="stylesheet" href="style.css" />
-  <script type="module" src="app.js" defer></script>
 </head>
 <body>
+  <div id="overlay">
+    <button id="micButton">🎤 Microfone</button>
+  </div>
   <canvas id="xr-canvas"></canvas>
-
-  <button id="ar-button">AR</button>
-  <button id="mic-button">🎤</button>
-
 </body>
 </html>
