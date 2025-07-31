@@ -1,32 +1,37 @@
 body {
-  margin: 0;
-  overflow: hidden;
-  background: white;
+    margin: 0;
+    overflow: hidden; /* Garante que não haja barras de rolagem */
+    background: white; /* Cor de fundo para quando não estiver em AR */
 }
 
 canvas {
-  width: 100vw;
-  height: 100vh;
-  display: block;
+    width: 100vw;
+    height: 100vh;
+    display: block; /* Remove espaço extra abaixo do canvas */
 }
 
 button {
-  position: fixed;
-  bottom: 20px;
-  background-color: rgba(0, 0, 0, 0.6);
-  color: white;
-  border: none;
-  padding: 10px 14px;
-  font-size: 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  z-index: 10;
+    position: fixed; /* Fixa a posição na tela */
+    bottom: 20px;
+    background-color: rgba(0, 0, 0, 0.7); /* Fundo semi-transparente */
+    color: white;
+    border: none;
+    padding: 12px 18px; /* Ajuste o padding para um melhor visual */
+    font-size: 18px; /* Aumente o tamanho da fonte */
+    border-radius: 20px; /* Borda mais arredondada */
+    cursor: pointer;
+    z-index: 10; /* Garante que o botão fique acima de outros elementos */
+    transition: background-color 0.3s ease; /* Transição suave para o hover */
+}
+
+button:hover {
+    background-color: rgba(0, 0, 0, 0.9); /* Cor mais escura ao passar o mouse */
 }
 
 #start-ar {
-  left: 20px;
+    left: 20px;
 }
 
 #mic-button {
-  right: 20px;
+    right: 20px;
 }
