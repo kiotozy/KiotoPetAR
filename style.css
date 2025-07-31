@@ -11,19 +11,53 @@ canvas {
   height: 100vh;
 }
 
+/* Estilo para o botão AR gerado por ARButton.js */
+#ar-button-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px; /* Colocamos o botão AR à esquerda */
+    z-index: 100;
+}
+
+#ar-button-container button {
+    background-color: rgba(0, 128, 0, 0.7); /* Verde para o botão AR */
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+#ar-button-container button:hover {
+    background-color: rgba(0, 128, 0, 0.9);
+}
+
+#ar-button-container button:active {
+    transform: scale(0.95);
+}
+
+#ar-button-container button:disabled {
+    background-color: rgba(0, 0, 0, 0.3);
+    cursor: not-allowed;
+}
+
+
 #mic-button {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  right: 20px; /* Mantemos o botão do microfone à direita */
   background-color: rgba(0, 0, 0, 0.6); /* Fundo semi-transparente */
   color: white;
   border: none;
-  padding: 15px 20px; /* Um pouco maior para facilitar o toque */
-  font-size: 24px; /* Ícone do microfone maior */
+  padding: 15px 20px;
+  font-size: 24px;
   border-radius: 50%; /* Botão redondo */
   cursor: pointer;
-  z-index: 100; /* Garante que fique acima de tudo */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Uma pequena sombra para destaque */
+  z-index: 100;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   transition: background-color 0.3s ease, transform 0.1s ease;
 }
 
@@ -32,7 +66,7 @@ canvas {
 }
 
 #mic-button:active {
-  transform: scale(0.95); /* Efeito de clique */
+  transform: scale(0.95);
 }
 
 #mic-button:disabled {
