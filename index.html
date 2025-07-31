@@ -77,11 +77,9 @@
     const arButton = document.getElementById('arButton');
     const scene = document.querySelector('a-scene');
 
-    // Desativa os botões nativos do A-Frame para usar os nossos
     scene.setAttribute('vr-mode-ui', 'enabled: false');
     scene.setAttribute('ar-mode-ui', 'enabled: false');
 
-    // Quando a página é carregada, a animação do modelo é iniciada
     window.onload = function() {
         modelEntity.setAttribute('animation-mixer', '');
     };
@@ -89,29 +87,23 @@
     // Componente para rotacionar o modelo com o toque
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
-        this.el.sceneEl.addEventListener('loaded', () => {
-          const scene = this.el.sceneEl;
-          scene.addEventListener('onefingermove', (event) => {
-            const rotation = this.el.getAttribute('rotation');
-            this.el.setAttribute('rotation', {
-              x: rotation.x,
-              y: rotation.y + event.detail.positionChange.x * 2,
-              z: rotation.z
-            });
+        this.el.addEventListener('onefingermove', (event) => {
+          const rotation = this.el.getAttribute('rotation');
+          this.el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + event.detail.positionChange.x * 2,
+            z: rotation.z
           });
         });
       }
     });
 
-    // Evento de clique para entrar em modo AR
     arButton.addEventListener('click', () => {
       scene.enterAR();
-      // Oculta o plano e o céu na cena AR para mostrar a câmera
       scene.querySelector('a-plane').setAttribute('visible', 'false');
       scene.querySelector('a-sky').setAttribute('visible', 'false');
     });
 
-    // Comandos de voz → MP3
     const comandos = {
       'olá': 'ola.mp3',
       'bom dia': 'bom_dia.mp3',
