@@ -1,158 +1,159 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-  <head>
-    <meta charset="utf-8" />
-    <title>Kioto AR</title>
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
+<head>
+  <meta charset="utf-8" />
+  <title>Kioto AR</title>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.2/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    #ui {
+      position: fixed;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      z-index: 9999;
+      pointer-events: auto;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background-color: #00aaff;
+      color: white;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- UI Botões -->
+  <div id="ui">
+    <button id="micButton">🎤 Falar</button>
+    <button id="arButton">Ativar AR</button>
+  </div>
+
+  <!-- Cena 3D + AR -->
+  <a-scene
+    embedded
+    renderer="colorManagement: true;" 
+    vr-mode-ui="enabled: false"
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    device-orientation-permission-ui="enabled: true"
+  >
+    <!-- Luz -->
+    <a-entity light="type: ambient; intensity: 1.2"></a-entity>
+    <a-entity light="type: directional; intensity: 1" position="1 1 0.5"></a-entity>
+
+    <!-- Câmera -->
+    <a-entity camera look-controls position="0 1.6 3"></a-entity>
+
+    <!-- Modelo com animação (ajuste de posição) -->
+    <a-entity
+      id="kioto"
+      gltf-model="kioto.glb"
+      animation-mixer="clip: *; loop: repeat"
+      position="0 0 -1"
+      scale="0.6 0.6 0.6"
+      gesture-handler
+    ></a-entity>
+  </a-scene>
+
+  <!-- Script para rotação -->
+  <script>
+    AFRAME.registerComponent("gesture-handler", {
+      schema: { enabled: { default: true } },
+      init: function () {
+        this.handleRotation = this.handleRotation.bind(this);
+        this.el.sceneEl.canvas.addEventListener("mousedown", (e) => {
+          this.startX = e.screenX;
+          this.startRot = this.el.object3D.rotation.y;
+          window.addEventListener("mousemove", this.handleRotation);
+        });
+        window.addEventListener("mouseup", () => {
+          window.removeEventListener("mousemove", this.handleRotation);
+        });
+      },
+      handleRotation: function (e) {
+        const delta = (e.screenX - this.startX) * 0.01;
+        this.el.object3D.rotation.y = this.startRot - delta;
+      },
+    });
+  </script>
+
+  <!-- Reconhecimento de voz -->
+  <script>
+    const comandos = {
+      "olá": "ola.mp3",
+      "bom dia": "bom_dia.mp3",
+      "boa tarde": "boa_tarde.mp3",
+      "boa noite": "boa_noite.mp3",
+      "qual seu nome": "qual_seu_nome.mp3",
+      "quer ser meu amigo": "quer_ser_meu_amigo.mp3",
+      "comandos": "comandos.mp3",
+      "dançar": "dançar",
+      "parar": "parar"
+    };
+
+    const micButton = document.getElementById("micButton");
+    let recognition;
+
+    micButton.addEventListener("click", () => {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Reconhecimento de voz não suportado no seu navegador.");
+        return;
       }
-      #ui {
-        position: fixed;
-        bottom: 20px;
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        z-index: 9999;
-      }
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        border: none;
-        border-radius: 10px;
-        background-color: #00aaff;
-        color: white;
-        font-weight: bold;
-        z-index: 9999;
-      }
-    </style>
-  </head>
 
-  <body>
-    <!-- UI Botões -->
-    <div id="ui">
-      <button id="micButton">🎤 Falar</button>
-      <button id="arButton">Ativar AR</button>
-    </div>
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = "pt-BR";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
-    <!-- Cena 3D + AR -->
-    <a-scene
-      embedded
-      renderer="colorManagement: true;" 
-      vr-mode-ui="enabled: false"
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      device-orientation-permission-ui="enabled: true"
-    >
-      <!-- Luz -->
-      <a-entity light="type: ambient; intensity: 1.2"></a-entity>
-      <a-entity light="type: directional; intensity: 1" position="1 1 0.5"></a-entity>
-
-      <!-- Câmera -->
-      <a-camera position="0 1.6 3" wasd-controls-enabled="false"></a-camera>
-
-      <!-- Modelo com animação -->
-      <a-entity
-        id="kioto"
-        gltf-model="kioto.glb"
-        animation-mixer="clip: *; loop: repeat"
-        position="0 0 -1"
-        scale="0.6 0.6 0.6"
-        gesture-handler
-      ></a-entity>
-    </a-scene>
-
-    <!-- Script para rotação manual -->
-    <script>
-      AFRAME.registerComponent("gesture-handler", {
-        schema: { enabled: { default: true } },
-        init: function () {
-          this.handleRotation = this.handleRotation.bind(this);
-          this.el.sceneEl.canvas.addEventListener("mousedown", (e) => {
-            this.startX = e.screenX;
-            this.startRot = this.el.object3D.rotation.y;
-            window.addEventListener("mousemove", this.handleRotation);
-          });
-          window.addEventListener("mouseup", () => {
-            window.removeEventListener("mousemove", this.handleRotation);
-          });
-        },
-        handleRotation: function (e) {
-          const delta = (e.screenX - this.startX) * 0.01;
-          this.el.object3D.rotation.y = this.startRot - delta;
-        },
-      });
-    </script>
-
-    <!-- Reconhecimento de voz -->
-    <script>
-      const comandos = {
-        "olá": "ola.mp3",
-        "bom dia": "bom_dia.mp3",
-        "boa tarde": "boa_tarde.mp3",
-        "boa noite": "boa_noite.mp3",
-        "qual seu nome": "qual_seu_nome.mp3",
-        "quer ser meu amigo": "quer_ser_meu_amigo.mp3",
-        "comandos": "comandos.mp3",
-        "dançar": "dançar",
-        "parar": "parar"
+      recognition.onresult = (event) => {
+        const comando = event.results[0][0].transcript.toLowerCase();
+        console.log("Comando detectado:", comando);
+        processarComando(comando);
       };
 
-      const micButton = document.getElementById("micButton");
-      let recognition;
+      recognition.onerror = (event) => {
+        console.error("Erro no reconhecimento:", event.error);
+      };
 
-      micButton.addEventListener("click", () => {
-        if (!('webkitSpeechRecognition' in window)) {
-          alert("Reconhecimento de voz não suportado no seu navegador.");
-          return;
-        }
+      recognition.start();
+    });
 
-        recognition = new webkitSpeechRecognition();
-        recognition.lang = "pt-BR";
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
+    function processarComando(comando) {
+      const audio = new Audio();
+      const entity = document.querySelector("#kioto");
 
-        recognition.onresult = (event) => {
-          const comando = event.results[0][0].transcript.toLowerCase();
-          console.log("Comando detectado:", comando);
-          processarComando(comando);
-        };
-
-        recognition.onerror = (event) => {
-          console.error("Erro no reconhecimento:", event.error);
-        };
-
-        recognition.start();
-      });
-
-      function processarComando(comando) {
-        const audio = new Audio();
-        const entity = document.querySelector("#kioto");
-
-        if (comando === "dançar") {
-          entity.setAttribute("animation-mixer", "clip: *; loop: repeat");
-        } else if (comando === "parar") {
-          entity.removeAttribute("animation-mixer");
-        } else if (comandos[comando]) {
-          audio.src = comandos[comando];
-          audio.play();
-        } else {
-          const fallback = new Audio("nao_entendi.mp3");
-          fallback.play();
-        }
+      if (comando === "dançar") {
+        entity.setAttribute("animation-mixer", "clip: *; loop: repeat");
+      } else if (comando === "parar") {
+        entity.removeAttribute("animation-mixer");
+      } else if (comandos[comando]) {
+        audio.src = comandos[comando];
+        audio.play();
+      } else {
+        const fallback = new Audio("nao_entendi.mp3");
+        fallback.play();
       }
-    </script>
+    }
+  </script>
 
-    <!-- Força visibilidade dos botões no AR -->
-    <script>
-      const arButton = document.getElementById("arButton");
-      arButton.addEventListener("click", () => {
-        document.querySelector("a-scene").enterAR();
+  <!-- Forçar visibilidade dos botões no AR -->
+  <script>
+    const arButton = document.getElementById("arButton");
+    arButton.addEventListener("click", () => {
+      document.querySelector("a-scene").enterAR();
+      setTimeout(() => {
         document.getElementById("ui").style.display = "flex";
-      });
-    </script>
-  </body>
+      }, 2000);
+    });
+  </script>
+</body>
 </html>
