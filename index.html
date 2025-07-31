@@ -17,7 +17,7 @@
         display: flex;
         justify-content: center;
         gap: 20px;
-        z-index: 100;
+        z-index: 9999;
       }
       button {
         padding: 10px 20px;
@@ -27,6 +27,7 @@
         background-color: #00aaff;
         color: white;
         font-weight: bold;
+        z-index: 9999;
       }
     </style>
   </head>
@@ -41,9 +42,10 @@
     <!-- Cena 3D + AR -->
     <a-scene
       embedded
-      renderer="colorManagement: true;"
+      renderer="colorManagement: true;" 
       vr-mode-ui="enabled: false"
       arjs="sourceType: webcam; debugUIEnabled: false;"
+      device-orientation-permission-ui="enabled: true"
     >
       <!-- Luz -->
       <a-entity light="type: ambient; intensity: 1.2"></a-entity>
@@ -52,18 +54,18 @@
       <!-- Câmera -->
       <a-camera position="0 1.6 3" wasd-controls-enabled="false"></a-camera>
 
-      <!-- Modelo 3D com rotação -->
+      <!-- Modelo com animação -->
       <a-entity
         id="kioto"
         gltf-model="kioto.glb"
-        animation-mixer
+        animation-mixer="clip: *; loop: repeat"
         position="0 0 -1"
         scale="0.6 0.6 0.6"
         gesture-handler
       ></a-entity>
     </a-scene>
 
-    <!-- Script de gestos (rotacionar com o dedo) -->
+    <!-- Script para rotação manual -->
     <script>
       AFRAME.registerComponent("gesture-handler", {
         schema: { enabled: { default: true } },
@@ -85,7 +87,7 @@
       });
     </script>
 
-    <!-- Script para reconhecimento de voz e comandos -->
+    <!-- Reconhecimento de voz -->
     <script>
       const comandos = {
         "olá": "ola.mp3",
@@ -96,7 +98,7 @@
         "quer ser meu amigo": "quer_ser_meu_amigo.mp3",
         "comandos": "comandos.mp3",
         "dançar": "dançar",
-        "parar": "parar",
+        "parar": "parar"
       };
 
       const micButton = document.getElementById("micButton");
@@ -128,13 +130,12 @@
 
       function processarComando(comando) {
         const audio = new Audio();
-        const mixer = document.querySelector("#kioto").components["animation-mixer"];
+        const entity = document.querySelector("#kioto");
 
         if (comando === "dançar") {
-          mixer.stopAllAction();
-          mixer.playAction("Animation");
+          entity.setAttribute("animation-mixer", "clip: *; loop: repeat");
         } else if (comando === "parar") {
-          mixer.stopAllAction();
+          entity.removeAttribute("animation-mixer");
         } else if (comandos[comando]) {
           audio.src = comandos[comando];
           audio.play();
@@ -145,11 +146,12 @@
       }
     </script>
 
-    <!-- Script para ativar AR -->
+    <!-- Força visibilidade dos botões no AR -->
     <script>
       const arButton = document.getElementById("arButton");
       arButton.addEventListener("click", () => {
         document.querySelector("a-scene").enterAR();
+        document.getElementById("ui").style.display = "flex";
       });
     </script>
   </body>
