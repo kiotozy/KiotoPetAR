@@ -2,12 +2,14 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <title>Kioto AR</title>
+    <title>Kioto Pet AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <link rel="stylesheet" href="estilo.css" />
   </head>
-  <body style="margin: 0; overflow: hidden;">
+  <body>
     <model-viewer
+      id="modelo"
       src="kioto.glb"
       alt="Personagem Kioto"
       ar
@@ -15,10 +17,20 @@
       ar-scale="fixed"
       camera-controls
       autoplay
-      animation-crossfade-duration="500"
-      environment-image="neutral"
       auto-rotate
-      style="width: 100vw; height: 100vh;">
-    </model-viewer>
+      style="width: 100vw; height: 100vh;"
+      exposure="1"
+      shadow-intensity="1"
+      disable-zoom
+    ></model-viewer>
+
+    <div id="botoes">
+      <button id="falar">🎤 Falar</button>
+      <button id="ativar-ar">Ativar AR</button>
+    </div>
+
+    <div id="dica">Diga um comando como "olá", "dançar", "qual seu nome", etc.</div>
+
+    <script src="app.js"></script>
   </body>
 </html>
