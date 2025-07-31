@@ -1,37 +1,41 @@
 body {
-    margin: 0;
-    overflow: hidden; /* Garante que não haja barras de rolagem */
-    background: white; /* Cor de fundo para quando não estiver em AR */
+  margin: 0;
+  overflow: hidden; /* Remove barras de rolagem */
+  background-color: #f0f0f0; /* Um fundo neutro enquanto não está em AR */
+  touch-action: none; /* Desabilita ações de toque padrão do navegador para melhor controle do AR */
 }
 
 canvas {
-    width: 100vw;
-    height: 100vh;
-    display: block; /* Remove espaço extra abaixo do canvas */
-}
-
-button {
-    position: fixed; /* Fixa a posição na tela */
-    bottom: 20px;
-    background-color: rgba(0, 0, 0, 0.7); /* Fundo semi-transparente */
-    color: white;
-    border: none;
-    padding: 12px 18px; /* Ajuste o padding para um melhor visual */
-    font-size: 18px; /* Aumente o tamanho da fonte */
-    border-radius: 20px; /* Borda mais arredondada */
-    cursor: pointer;
-    z-index: 10; /* Garante que o botão fique acima de outros elementos */
-    transition: background-color 0.3s ease; /* Transição suave para o hover */
-}
-
-button:hover {
-    background-color: rgba(0, 0, 0, 0.9); /* Cor mais escura ao passar o mouse */
-}
-
-#start-ar {
-    left: 20px;
+  display: block; /* Garante que o canvas ocupe o espaço corretamente */
+  width: 100vw;
+  height: 100vh;
 }
 
 #mic-button {
-    right: 20px;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.6); /* Fundo semi-transparente */
+  color: white;
+  border: none;
+  padding: 15px 20px; /* Um pouco maior para facilitar o toque */
+  font-size: 24px; /* Ícone do microfone maior */
+  border-radius: 50%; /* Botão redondo */
+  cursor: pointer;
+  z-index: 100; /* Garante que fique acima de tudo */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Uma pequena sombra para destaque */
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+#mic-button:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+#mic-button:active {
+  transform: scale(0.95); /* Efeito de clique */
+}
+
+#mic-button:disabled {
+  background-color: rgba(0, 0, 0, 0.3);
+  cursor: not-allowed;
 }
