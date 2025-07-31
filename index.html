@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -47,8 +48,8 @@
     <button id="arButton">Ativar AR</button>
   </div>
 
-  <a-scene id="scene" embedded xr-mode-ui="enabled: false"
-    renderer="antialias: true">
+  <a-scene id="scene" embedded vr-mode-ui="enabled: true"
+    renderer="antialias: true" gesture-detector>
 
     <a-assets>
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
@@ -61,13 +62,14 @@
       rotation="0 0 0"
       position="0 0 -2"
       scale="1 1 1"
+      gesture-detector
     ></a-entity>
 
     <a-plane position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
     <a-sky color="#ECECEC"></a-sky>
     <a-light type="ambient" color="#FFF"></a-light>
     
-    <a-entity camera position="0 1.6 0" look-controls="enabled: false"></a-entity>
+    <a-entity camera position="0 1.6 0"></a-entity>
   </a-scene>
 
   <script>
@@ -75,59 +77,22 @@
     const arButton = document.getElementById('arButton');
     const scene = document.querySelector('a-scene');
 
-    scene.setAttribute('vr-mode-ui', 'enabled: false');
-
     window.onload = function() {
         modelEntity.setAttribute('animation-mixer', '');
     };
 
-    // Lógica para rotação manual do modelo com o toque
-    let isDragging = false;
-    let previousX;
-
-    scene.addEventListener('mousedown', function(e) {
-      isDragging = true;
-      previousX = e.clientX;
-    });
-
-    scene.addEventListener('mousemove', function(e) {
-      if (isDragging) {
-        const deltaX = e.clientX - previousX;
-        const rotation = modelEntity.getAttribute('rotation');
-        modelEntity.setAttribute('rotation', {
-          x: rotation.x,
-          y: rotation.y + deltaX * 0.5,
-          z: rotation.z
+    // Componente para rotacionar o modelo com o toque
+    AFRAME.registerComponent('gesture-detector', {
+      init: function () {
+        this.el.sceneEl.addEventListener('onefingermove', (event) => {
+          const rotation = this.el.getAttribute('rotation');
+          this.el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + event.detail.positionChange.x * 2,
+            z: rotation.z
+          });
         });
-        previousX = e.clientX;
       }
-    });
-
-    scene.addEventListener('mouseup', function() {
-      isDragging = false;
-    });
-
-    // Lógica para rotação em dispositivos móveis
-    scene.addEventListener('touchstart', function(e) {
-      isDragging = true;
-      previousX = e.touches[0].clientX;
-    });
-
-    scene.addEventListener('touchmove', function(e) {
-      if (isDragging) {
-        const deltaX = e.touches[0].clientX - previousX;
-        const rotation = modelEntity.getAttribute('rotation');
-        modelEntity.setAttribute('rotation', {
-          x: rotation.x,
-          y: rotation.y + deltaX * 0.5,
-          z: rotation.z
-        });
-        previousX = e.touches[0].clientX;
-      }
-    });
-
-    scene.addEventListener('touchend', function() {
-      isDragging = false;
     });
 
     arButton.addEventListener('click', () => {
