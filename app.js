@@ -137,7 +137,7 @@ function setup3DNormalMode() {
 async function loadModel() {
     return new Promise((resolve, reject) => {
         const loader = new GLTFLoader();
-        loader.load('kioto.glb', (gltf) => {
+        loader.load('./kioto.glb', (gltf) => {
             model = gltf.scene;
             if (gltf.animations && gltf.animations.length > 0) {
                 mixer = new THREE.AnimationMixer(model);
