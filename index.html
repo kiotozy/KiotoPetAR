@@ -78,7 +78,6 @@
     const ground = document.getElementById('ground');
     const sky = document.getElementById('sky');
 
-    // Desativar botões nativos do A-Frame
     scene.setAttribute('vr-mode-ui', 'enabled: false');
     scene.setAttribute('ar-mode-ui', 'enabled: false');
 
@@ -86,7 +85,6 @@
         modelEntity.setAttribute('animation-mixer', '');
     };
 
-    // Componente para rotacionar o modelo com o toque
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
         this.el.sceneEl.addEventListener('onefingermove', (event) => {
@@ -100,12 +98,10 @@
       }
     });
 
-    // Evento de clique para entrar em modo AR
     arButton.addEventListener('click', () => {
-        scene.enterAR();
+      scene.enterAR();
     });
 
-    // Evento que dispara quando a cena entra em modo AR
     scene.addEventListener('enter-vr', function () {
       if (this.is('ar-mode')) {
         ground.setAttribute('visible', 'false');
@@ -128,11 +124,13 @@
     if ('webkitSpeechRecognition' in window) {
       recognition = new webkitSpeechRecognition();
       recognition.lang = 'pt-BR';
-      recognition.continuous = false;
+      recognition.continuous = true; // <--- AGORA É CONTÍNUO!
       recognition.interimResults = false;
 
       micButton.addEventListener('click', () => {
         recognition.start();
+        micButton.style.backgroundColor = 'green';
+        micButton.textContent = '🎤 Falando...';
       });
 
       recognition.onresult = (event) => {
@@ -153,6 +151,11 @@
             fallback.play();
           }
         }
+      };
+
+      recognition.onend = () => {
+        // Reinicia a escuta automaticamente se for interrompida
+        recognition.start();
       };
     } else {
       alert('Reconhecimento de voz não suportado neste navegador.');
