@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Kioto Pet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    #buttons {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      z-index: 1000;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #03a9f4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="buttons">
+    <button id="micButton">🎤 Falar</button>
+  </div>
+
+  <a-scene id="scene" embedded vr-mode-ui="enabled: true"
+    renderer="antialias: true"
+    gesture-detector>
+
+    <a-assets>
+      <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+    </a-assets>
+
+    <a-entity
+      id="glb"
+      gltf-model="#model"
+      animation-mixer
+      rotation="0 0 0"
+      position="0 0 -2"
+      scale="1 1 1"
+      gesture-detector
+    ></a-entity>
+    
+    <a-plane position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+    <a-sky color="#ECECEC"></a-sky>
+    <a-light type="ambient" color="#FFF"></a-light>
+    
+    <a-entity camera position="0 1.6 0" look-controls wasd-controls="enabled: false"></a-entity>
+  </a-scene>
+
+  <script>
+    const modelEntity = document.getElementById('glb');
+    const scene = document.querySelector('a-scene');
+
+    // Componente para detectar gestos e rotacionar o modelo
+    AFRAME.registerComponent('gesture-detector', {
+      init: function () {
+        this.el.addEventListener('onefingermove', (event) => {
+          const rotation = this.el.getAttribute('rotation');
+          this.el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + event.detail.positionChange.x * 2,
+            z: rotation.z
+          });
+        });
+      }
+    });
+
+    // Comandos de voz → MP3
+    const comandos = {
+      'olá': 'ola.mp3',
+      'bom dia': 'bom_dia.mp3',
+      'boa tarde': 'boa_tarde.mp3',
+      'boa noite': 'boa_noite.mp3',
+      'qual seu nome': 'qual_seu_nome.mp3',
+      'quer ser meu amigo': 'quer_ser_meu_amigo.mp3',
+      'não entendi': 'nao_entendi.mp3',
+    };
+
+    const micButton = document.getElementById('micButton');
+    let recognition;
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      micButton.addEventListener('click', () => {
+        recognition.start();
+      });
+
+      recognition.onresult = (event) => {
+        const comando = event.results[0][0].transcript.toLowerCase();
+        console.log('Comando de voz:', comando);
+
+        if (comando.includes('dançar')) {
+          modelEntity.setAttribute('animation-mixer', '');
+        } else if (comando.includes('parar')) {
+          modelEntity.removeAttribute('animation-mixer');
+        } else {
+          const arquivo = comandos[comando];
+          if (arquivo) {
+            const audio = new Audio(arquivo);
+            audio.play();
+          } else {
+            const fallback = new Audio('nao_entendi.mp3');
+            fallback.play();
+          }
+        }
+      };
+    } else {
+      alert('Reconhecimento de voz não suportado neste navegador.');
+    }
+  </script>
+</body>
+</html>
