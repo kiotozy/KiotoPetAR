@@ -26,14 +26,19 @@
     button {
       padding: 12px 20px;
       font-size: 16px;
-      background-color: #03a9f4;
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
     }
-    .listening {
-      background-color: green !important;
+    #micButton {
+      background-color: #03a9f4;
+    }
+    #micButton.listening {
+      background-color: green;
+    }
+    #arButton {
+      background-color: #03a9f4;
     }
     a-scene {
       position: absolute;
@@ -143,7 +148,13 @@
       recognition.onstart = () => {
         isListening = true;
         micButton.classList.add('listening');
-        micButton.textContent = '🎤 Falando...';
+        micButton.textContent = '🎤 Ouvindo...';
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        micButton.classList.remove('listening');
+        micButton.textContent = '🎤 Falar';
       };
 
       recognition.onresult = (event) => {
@@ -166,10 +177,14 @@
         }
       };
 
-      recognition.onend = () => {
-        isListening = false;
-        micButton.classList.remove('listening');
-        micButton.textContent = '🎤 Falar';
+      recognition.onerror = (event) => {
+        console.error('Erro no reconhecimento de voz:', event.error);
+        if (event.error !== 'no-speech') {
+          // Apenas para dar um feedback ao usuário
+          micButton.classList.remove('listening');
+          micButton.textContent = '🎤 Erro!';
+          isListening = false;
+        }
       };
 
     } else {
