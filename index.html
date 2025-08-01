@@ -101,7 +101,7 @@
     scene.setAttribute('ar-mode-ui', 'enabled: false');
 
     window.onload = function() {
-        // Inicia com uma animação padrão, se houver
+        // Inicia com uma animação padrão, se houver, ou a primeira da lista
         modelEntity.setAttribute('animation-mixer', '');
     };
 
@@ -147,26 +147,30 @@
     }
 
     function speakCommand(comando) {
+      console.log('Comando de voz detectado:', comando);
+      comando = comando.toLowerCase();
+
       if (comando.includes('bom dia')) {
         playAudio('bom_dia');
       } else if (comando.includes('boa tarde')) {
         playAudio('boa_tarde');
       } else if (comando.includes('boa noite')) {
         playAudio('boa_noite');
+      } else if (comando.includes('comandos')) {
+        playAudio('comandos');
       } else if (comando.includes('qual seu nome') || comando.includes('seu nome')) {
         playAudio('qual_seu_nome');
-      } else if (comando.includes('olá')) {
-        playAudio('ola');
       } else if (comando.includes('quer ser meu amigo')) {
         playAudio('quer_ser_meu_amigo');
+      } else if (comando.includes('olá')) {
+        playAudio('ola');
       } else if (comando.includes('dançar')) {
+        // Toca o áudio de dança e ativa a animação
         playAudio('danca');
         modelEntity.setAttribute('animation-mixer', { clip: 'dance' });
       } else if (comando.includes('parar')) {
-        playAudio('parar');
+        // Para a animação do modelo sem tocar áudio
         modelEntity.setAttribute('animation-mixer', { clip: '*' });
-      } else if (comando.includes('comandos')) {
-        playAudio('comandos');
       } else {
         playAudio('nao_entendi');
       }
