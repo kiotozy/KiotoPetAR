@@ -66,6 +66,10 @@
       <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
       <audio id="qual_seu_nome" src="qual_seu_nome.mp3" preload="auto"></audio>
       <audio id="nao_entendi" src="nao_entendi.mp3" preload="auto"></audio>
+      <audio id="ola" src="ola.mp3" preload="auto"></audio>
+      <audio id="comandos" src="comandos.mp3" preload="auto"></audio>
+      <audio id="danca" src="danca.mp3" preload="auto"></audio>
+      <audio id="quer_ser_meu_amigo" src="quer_ser_meu_amigo.mp3" preload="auto"></audio>
     </a-assets>
 
     <a-entity
@@ -128,7 +132,9 @@
     let isSpeaking = false;
 
     function playAudio(audioElementId) {
-      if (isSpeaking) return;
+      if (isSpeaking) {
+        return;
+      }
       
       const audio = document.getElementById(audioElementId);
       if (audio) {
@@ -141,14 +147,39 @@
     }
 
     function speakCommand(comando) {
+      comando = comando.toLowerCase();
+
+      // Lógica para controle de animação
+      if (comando.includes('ativar')) {
+        modelEntity.setAttribute('animation-mixer', { clip: 'dance', loop: 'repeat' });
+        return; 
+      }
+      
+      if (comando.includes('parar')) {
+        const mixer = modelEntity.components['animation-mixer'];
+        if (mixer) {
+          mixer.stopAllActions();
+        }
+        return;
+      }
+
+      // Lógica para reprodução de áudio
       if (comando.includes('bom dia')) {
         playAudio('bom_dia');
       } else if (comando.includes('boa tarde')) {
         playAudio('boa_tarde');
       } else if (comando.includes('boa noite')) {
         playAudio('boa_noite');
-      } else if (comando.includes('qual seu nome')) {
+      } else if (comando.includes('comandos')) {
+        playAudio('comandos');
+      } else if (comando.includes('qual seu nome') || comando.includes('seu nome')) {
         playAudio('qual_seu_nome');
+      } else if (comando.includes('olá')) {
+        playAudio('ola');
+      } else if (comando.includes('quer ser meu amigo')) {
+        playAudio('quer_ser_meu_amigo');
+      } else if (comando.includes('música')) {
+        playAudio('danca');
       } else {
         playAudio('nao_entendi');
       }
