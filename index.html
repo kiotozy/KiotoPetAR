@@ -32,6 +32,9 @@
       border-radius: 8px;
       cursor: pointer;
     }
+    .listening {
+      background-color: green !important;
+    }
     a-scene {
       position: absolute;
       top: 0;
@@ -77,6 +80,7 @@
     const scene = document.querySelector('a-scene');
     const ground = document.getElementById('ground');
     const sky = document.getElementById('sky');
+    const micButton = document.getElementById('micButton');
 
     scene.setAttribute('vr-mode-ui', 'enabled: false');
     scene.setAttribute('ar-mode-ui', 'enabled: false');
@@ -119,19 +123,28 @@
       'não entendi': 'nao_entendi.mp3',
     };
 
-    const micButton = document.getElementById('micButton');
     let recognition;
+    let isListening = false;
+
     if ('webkitSpeechRecognition' in window) {
       recognition = new webkitSpeechRecognition();
       recognition.lang = 'pt-BR';
-      recognition.continuous = true; // <--- AGORA É CONTÍNUO!
+      recognition.continuous = true;
       recognition.interimResults = false;
 
       micButton.addEventListener('click', () => {
-        recognition.start();
-        micButton.style.backgroundColor = 'green';
-        micButton.textContent = '🎤 Falando...';
+        if (!isListening) {
+          recognition.start();
+        } else {
+          recognition.stop();
+        }
       });
+
+      recognition.onstart = () => {
+        isListening = true;
+        micButton.classList.add('listening');
+        micButton.textContent = '🎤 Falando...';
+      };
 
       recognition.onresult = (event) => {
         const comando = event.results[0][0].transcript.toLowerCase();
@@ -154,9 +167,11 @@
       };
 
       recognition.onend = () => {
-        // Reinicia a escuta automaticamente se for interrompida
-        recognition.start();
+        isListening = false;
+        micButton.classList.remove('listening');
+        micButton.textContent = '🎤 Falar';
       };
+
     } else {
       alert('Reconhecimento de voz não suportado neste navegador.');
     }
