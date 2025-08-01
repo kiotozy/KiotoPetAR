@@ -159,10 +159,10 @@
         playAudio('quer_ser_meu_amigo');
       } else if (comando.includes('dançar')) {
         playAudio('danca');
-        modelEntity.setAttribute('animation-mixer', { clip: 'dance' }); // Inicia a animação de dança
+        modelEntity.setAttribute('animation-mixer', { clip: 'dance' });
       } else if (comando.includes('parar')) {
         playAudio('parar');
-        modelEntity.setAttribute('animation-mixer', { clip: '*' }); // Para a animação
+        modelEntity.setAttribute('animation-mixer', { clip: '*' });
       } else {
         playAudio('nao_entendi');
       }
