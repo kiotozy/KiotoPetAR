@@ -149,23 +149,26 @@
 
     function speakCommand(comando) {
       comando = comando.toLowerCase();
-
-      // Lógica para controle de animação (ajustada para funcionar corretamente)
-      if (comando.includes('dançar')) {
+      
+      // Lógica para ativar a animação com o comando "ativar"
+      if (comando.includes('ativar')) {
         playAudio('danca');
-        modelEntity.setAttribute('animation-mixer', { clip: 'dance', loop: 'repeat' });
-        return; // Retorna para evitar que a lógica continue
+        // IMPORTANTE: VOCÊ PRECISA MUDAR 'nome-da-animacao' ABAIXO
+        // SUBSTITUA 'nome-da-animacao' PELO NOME EXATO DA ANIMAÇÃO NO SEU ARQUIVO GLB
+        modelEntity.setAttribute('animation-mixer', { clip: 'nome-da-animacao', loop: 'repeat' });
+        return;
       }
       
+      // Lógica para parar a animação com o comando "parar"
       if (comando.includes('parar')) {
         const mixer = modelEntity.components['animation-mixer'];
         if (mixer) {
           mixer.stopAllActions();
         }
-        return; // Retorna para evitar que a lógica continue
+        return;
       }
 
-      // Lógica para os outros comandos de voz (mantida)
+      // Lógica para os outros comandos de voz
       if (comando.includes('bom dia')) {
         playAudio('bom_dia');
       } else if (comando.includes('boa tarde')) {
