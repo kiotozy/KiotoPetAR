@@ -162,20 +162,20 @@
 
       recognition.onend = () => {
         isListening = false;
-        micButton.classList.remove('listening');
-        micButton.textContent = '🎤 Falar';
-        
-        // REINICIA A ESCUTA SOMENTE SE A PERMISSÃO CONTÍNUA ESTIVER ATIVA
         if (isPermanentlyListening) {
-          setTimeout(() => {
-            startRecognition();
-          }, 500); // Pequeno atraso para evitar conflitos de sessão
+          // Se o modo permanente estiver ligado, reinicia após um pequeno atraso
+          setTimeout(startRecognition, 100);
+        } else {
+          micButton.classList.remove('listening');
+          micButton.textContent = '🎤 Falar';
         }
       };
 
       recognition.onresult = (event) => {
         const comando = event.results[0][0].transcript.toLowerCase();
         console.log('Comando de voz:', comando);
+        
+        let audio;
 
         if (comando.includes('dançar')) {
           modelEntity.setAttribute('animation-mixer', '');
@@ -184,19 +184,35 @@
         } else {
           const arquivo = comandos[comando];
           if (arquivo) {
-            const audio = new Audio(arquivo);
+            audio = new Audio(arquivo);
             audio.play();
           } else {
-            const fallback = new Audio('nao_entendi.mp3');
-            fallback.play();
+            audio = new Audio('nao_entendi.mp3');
+            audio.play();
+          }
+        }
+        
+        // PAUSA A ESCUTA DE VOZ ENQUANTO O ÁUDIO ESTÁ TOCANDO
+        recognition.stop();
+        
+        if (audio) {
+          audio.onended = () => {
+            // Reinicia a escuta somente APÓS o áudio terminar
+            if (isPermanentlyListening) {
+              startRecognition();
+            }
+          };
+        } else {
+          // Se não houver áudio para tocar, reinicia imediatamente
+          if (isPermanentlyListening) {
+            startRecognition();
           }
         }
       };
 
       recognition.onerror = (event) => {
         console.error('Erro no reconhecimento de voz:', event.error);
-        isListening = false;
-        // O onend será chamado depois, que já lida com o estado do botão
+        // O `onend` será chamado em seguida para lidar com o estado
       };
 
     } else {
