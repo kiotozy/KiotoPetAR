@@ -130,18 +130,26 @@
 
     let recognition;
     let isListening = false;
+    let isPermanentlyListening = false;
+
+    function startRecognition() {
+      if (recognition && !isListening) {
+        recognition.start();
+      }
+    }
 
     if ('webkitSpeechRecognition' in window) {
       recognition = new webkitSpeechRecognition();
       recognition.lang = 'pt-BR';
-      recognition.continuous = false; // Não mais contínuo para evitar bugs
+      recognition.continuous = false;
       recognition.interimResults = false;
 
       micButton.addEventListener('click', () => {
-        if (!isListening) {
-          recognition.start();
+        if (!isPermanentlyListening) {
+          isPermanentlyListening = true;
+          startRecognition();
         } else {
-          // Permite parar manualmente se necessário
+          isPermanentlyListening = false;
           recognition.stop();
         }
       });
@@ -156,6 +164,13 @@
         isListening = false;
         micButton.classList.remove('listening');
         micButton.textContent = '🎤 Falar';
+        
+        // REINICIA A ESCUTA SOMENTE SE A PERMISSÃO CONTÍNUA ESTIVER ATIVA
+        if (isPermanentlyListening) {
+          setTimeout(() => {
+            startRecognition();
+          }, 500); // Pequeno atraso para evitar conflitos de sessão
+        }
       };
 
       recognition.onresult = (event) => {
@@ -176,16 +191,12 @@
             fallback.play();
           }
         }
-        
-        // REINICIA O RECONHECIMENTO DE VOZ AUTOMATICAMENTE
-        recognition.start();
       };
 
       recognition.onerror = (event) => {
         console.error('Erro no reconhecimento de voz:', event.error);
         isListening = false;
-        micButton.classList.remove('listening');
-        micButton.textContent = '🎤 Falar';
+        // O onend será chamado depois, que já lida com o estado do botão
       };
 
     } else {
