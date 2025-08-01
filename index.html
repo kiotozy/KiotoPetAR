@@ -134,65 +134,53 @@
 
     function playAudio(audioElementId) {
       if (isSpeaking) {
-        console.log(`Áudio ${audioElementId} não pode ser reproduzido, outro áudio já está tocando.`);
         return;
       }
       
       const audio = document.getElementById(audioElementId);
       if (audio) {
         isSpeaking = true;
-        console.log(`Reproduzindo áudio: ${audioElementId}.mp3`);
         audio.play();
         audio.onended = () => {
           isSpeaking = false;
-          console.log(`Áudio ${audioElementId}.mp3 finalizado.`);
         };
-      } else {
-        console.error(`Erro: Elemento de áudio com ID "${audioElementId}" não encontrado.`);
       }
     }
 
     function speakCommand(comando) {
-      console.log('Comando de voz detectado:', comando);
       comando = comando.toLowerCase();
 
-      // Mapeamento de comandos para ações
-      const commands = {
-        'dançar': () => {
-          console.log('Ação: Ativar animação de dança.');
-          playAudio('danca');
-          modelEntity.setAttribute('animation-mixer', { clip: 'dance', loop: 'repeat' });
-        },
-        'parar': () => {
-          console.log('Ação: Parar animação.');
-          // Para a animação do modelo sem tocar áudio
-          const mixer = modelEntity.components['animation-mixer'];
-          if (mixer) {
-            mixer.stopAllActions();
-          }
-        },
-        'bom dia': () => playAudio('bom_dia'),
-        'boa tarde': () => playAudio('boa_tarde'),
-        'boa noite': () => playAudio('boa_noite'),
-        'comandos': () => playAudio('comandos'),
-        'qual seu nome': () => playAudio('qual_seu_nome'),
-        'seu nome': () => playAudio('qual_seu_nome'),
-        'olá': () => playAudio('ola'),
-        'quer ser meu amigo': () => playAudio('quer_ser_meu_amigo'),
-        'dançar': () => playAudio('danca'),
-      };
+      // Lógica para controle de animação (ajustada para funcionar corretamente)
+      if (comando.includes('dançar')) {
+        playAudio('danca');
+        modelEntity.setAttribute('animation-mixer', { clip: 'dance', loop: 'repeat' });
+        return; // Retorna para evitar que a lógica continue
+      }
       
-      let commandFound = false;
-      for (const keyword in commands) {
-        if (comando.includes(keyword)) {
-          commands[keyword]();
-          commandFound = true;
-          break;
+      if (comando.includes('parar')) {
+        const mixer = modelEntity.components['animation-mixer'];
+        if (mixer) {
+          mixer.stopAllActions();
         }
+        return; // Retorna para evitar que a lógica continue
       }
 
-      if (!commandFound) {
-        console.log('Comando desconhecido. Tocando áudio "nao_entendi".');
+      // Lógica para os outros comandos de voz (mantida)
+      if (comando.includes('bom dia')) {
+        playAudio('bom_dia');
+      } else if (comando.includes('boa tarde')) {
+        playAudio('boa_tarde');
+      } else if (comando.includes('boa noite')) {
+        playAudio('boa_noite');
+      } else if (comando.includes('comandos')) {
+        playAudio('comandos');
+      } else if (comando.includes('qual seu nome') || comando.includes('seu nome')) {
+        playAudio('qual_seu_nome');
+      } else if (comando.includes('olá')) {
+        playAudio('ola');
+      } else if (comando.includes('quer ser meu amigo')) {
+        playAudio('quer_ser_meu_amigo');
+      } else {
         playAudio('nao_entendi');
       }
     }
@@ -215,14 +203,12 @@
         isListening = true;
         micButton.classList.add('listening');
         micButton.textContent = '🎤 Ouvindo...';
-        console.log('Reconhecimento de voz iniciado.');
       };
 
       recognition.onend = () => {
         isListening = false;
         micButton.classList.remove('listening');
         micButton.textContent = '🎤 Falar';
-        console.log('Reconhecimento de voz finalizado.');
       };
 
       recognition.onresult = (event) => {
@@ -238,10 +224,6 @@
         }
       };
 
-    } else {
-        console.error('webkitSpeechRecognition não é suportado por este navegador.');
-        micButton.textContent = 'Sem suporte';
-        micButton.disabled = true;
     }
   </script>
 </body>
