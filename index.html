@@ -130,18 +130,23 @@
     let recognition;
     let isListening = false;
     let isSpeaking = false;
+    let currentAudio = null;
 
     function playAudio(audioElementId) {
-      if (isSpeaking) {
-        return;
+      // Para o áudio atual se houver um
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
       }
-      
+
       const audio = document.getElementById(audioElementId);
       if (audio) {
         isSpeaking = true;
+        currentAudio = audio; // Guarda a referência do áudio atual
         audio.play();
         audio.onended = () => {
           isSpeaking = false;
+          currentAudio = null;
         };
       }
     }
@@ -150,8 +155,9 @@
       comando = comando.toLowerCase();
 
       // Lógica para controle de animação
-      if (comando.includes('ativar')) {
-        modelEntity.setAttribute('animation-mixer', { clip: 'dance', loop: 'repeat' });
+      if (comando.includes('dançar')) {
+        modelEntity.setAttribute('animation-mixer', { clip: '*', loop: 'repeat' });
+        playAudio('danca');
         return; 
       }
       
@@ -192,10 +198,21 @@
       recognition.interimResults = false;
 
       micButton.addEventListener('click', () => {
-        if (!isListening) {
+        if (isListening) {
+          // Se o reconhecimento já está ativo, apenas para.
+          recognition.stop();
+        } else if (isSpeaking) {
+          // Se um áudio está tocando, para o áudio e inicia o reconhecimento.
+          if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            isSpeaking = false;
+            currentAudio = null;
+          }
           recognition.start();
         } else {
-          recognition.stop();
+          // Se nada está ativo, inicia o reconhecimento.
+          recognition.start();
         }
       });
 
