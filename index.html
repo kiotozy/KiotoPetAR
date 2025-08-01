@@ -101,7 +101,6 @@
     scene.setAttribute('ar-mode-ui', 'enabled: false');
 
     window.onload = function() {
-        // Inicia com uma animação padrão, se houver, ou a primeira da lista
         modelEntity.setAttribute('animation-mixer', '');
     };
 
@@ -134,15 +133,22 @@
     let isSpeaking = false;
 
     function playAudio(audioElementId) {
-      if (isSpeaking) return;
+      if (isSpeaking) {
+        console.log(`Áudio ${audioElementId} não pode ser reproduzido, outro áudio já está tocando.`);
+        return;
+      }
       
       const audio = document.getElementById(audioElementId);
       if (audio) {
         isSpeaking = true;
+        console.log(`Reproduzindo áudio: ${audioElementId}.mp3`);
         audio.play();
         audio.onended = () => {
           isSpeaking = false;
+          console.log(`Áudio ${audioElementId}.mp3 finalizado.`);
         };
+      } else {
+        console.error(`Erro: Elemento de áudio com ID "${audioElementId}" não encontrado.`);
       }
     }
 
@@ -150,28 +156,42 @@
       console.log('Comando de voz detectado:', comando);
       comando = comando.toLowerCase();
 
-      if (comando.includes('bom dia')) {
-        playAudio('bom_dia');
-      } else if (comando.includes('boa tarde')) {
-        playAudio('boa_tarde');
-      } else if (comando.includes('boa noite')) {
-        playAudio('boa_noite');
-      } else if (comando.includes('comandos')) {
-        playAudio('comandos');
-      } else if (comando.includes('qual seu nome') || comando.includes('seu nome')) {
-        playAudio('qual_seu_nome');
-      } else if (comando.includes('quer ser meu amigo')) {
-        playAudio('quer_ser_meu_amigo');
-      } else if (comando.includes('olá')) {
-        playAudio('ola');
-      } else if (comando.includes('dançar')) {
-        // Toca o áudio de dança e ativa a animação
-        playAudio('danca');
-        modelEntity.setAttribute('animation-mixer', { clip: 'dance' });
-      } else if (comando.includes('parar')) {
-        // Para a animação do modelo sem tocar áudio
-        modelEntity.setAttribute('animation-mixer', { clip: '*' });
-      } else {
+      // Mapeamento de comandos para ações
+      const commands = {
+        'dançar': () => {
+          console.log('Ação: Ativar animação de dança.');
+          playAudio('danca');
+          modelEntity.setAttribute('animation-mixer', { clip: 'dance', loop: 'repeat' });
+        },
+        'parar': () => {
+          console.log('Ação: Parar animação.');
+          // Para a animação do modelo sem tocar áudio
+          const mixer = modelEntity.components['animation-mixer'];
+          if (mixer) {
+            mixer.stopAllActions();
+          }
+        },
+        'bom dia': () => playAudio('bom_dia'),
+        'boa tarde': () => playAudio('boa_tarde'),
+        'boa noite': () => playAudio('boa_noite'),
+        'comandos': () => playAudio('comandos'),
+        'qual seu nome': () => playAudio('qual_seu_nome'),
+        'seu nome': () => playAudio('qual_seu_nome'),
+        'olá': () => playAudio('ola'),
+        'quer ser meu amigo': () => playAudio('quer_ser_meu_amigo'),
+      };
+      
+      let commandFound = false;
+      for (const keyword in commands) {
+        if (comando.includes(keyword)) {
+          commands[keyword]();
+          commandFound = true;
+          break;
+        }
+      }
+
+      if (!commandFound) {
+        console.log('Comando desconhecido. Tocando áudio "nao_entendi".');
         playAudio('nao_entendi');
       }
     }
@@ -194,17 +214,18 @@
         isListening = true;
         micButton.classList.add('listening');
         micButton.textContent = '🎤 Ouvindo...';
+        console.log('Reconhecimento de voz iniciado.');
       };
 
       recognition.onend = () => {
         isListening = false;
         micButton.classList.remove('listening');
         micButton.textContent = '🎤 Falar';
+        console.log('Reconhecimento de voz finalizado.');
       };
 
       recognition.onresult = (event) => {
-        const comando = event.results[0][0].transcript.toLowerCase();
-        console.log('Comando de voz:', comando);
+        const comando = event.results[0][0].transcript;
         speakCommand(comando);
       };
 
@@ -216,6 +237,10 @@
         }
       };
 
+    } else {
+        console.error('webkitSpeechRecognition não é suportado por este navegador.');
+        micButton.textContent = 'Sem suporte';
+        micButton.disabled = true;
     }
   </script>
 </body>
