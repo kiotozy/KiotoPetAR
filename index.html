@@ -149,14 +149,13 @@
 
     function speakCommand(comando) {
       comando = comando.toLowerCase();
-      
-      // Lógica para ativar a animação com o comando "ativar"
-      if (comando.includes('ativar')) {
+
+      // Lógica para ativar a animação com o comando "dançar"
+      if (comando.includes('dançar')) {
         playAudio('danca');
-        // IMPORTANTE: VOCÊ PRECISA MUDAR 'nome-da-animacao' ABAIXO
-        // SUBSTITUA 'nome-da-animacao' PELO NOME EXATO DA ANIMAÇÃO NO SEU ARQUIVO GLB
-        modelEntity.setAttribute('animation-mixer', { clip: 'nome-da-animacao', loop: 'repeat' });
-        return;
+        // A-Frame irá reproduzir a animação padrão do seu modelo GLB
+        modelEntity.setAttribute('animation-mixer', { clip: 'dance', loop: 'repeat' });
+        return; 
       }
       
       // Lógica para parar a animação com o comando "parar"
