@@ -66,6 +66,10 @@
       <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
       <audio id="qual_seu_nome" src="qual_seu_nome.mp3" preload="auto"></audio>
       <audio id="nao_entendi" src="nao_entendi.mp3" preload="auto"></audio>
+      <audio id="ola" src="ola.mp3" preload="auto"></audio>
+      <audio id="quer_ser_meu_amigo" src="quer_ser_meu_amigo.mp3" preload="auto"></audio>
+      <audio id="danca" src="danca.mp3" preload="auto"></audio>
+      <audio id="parar" src="parar.mp3" preload="auto"></audio>
     </a-assets>
 
     <a-entity
@@ -149,6 +153,16 @@
         playAudio('boa_noite');
       } else if (comando.includes('qual seu nome')) {
         playAudio('qual_seu_nome');
+      } else if (comando.includes('olá')) {
+        playAudio('ola');
+      } else if (comando.includes('quer ser meu amigo')) {
+        playAudio('quer_ser_meu_amigo');
+      } else if (comando.includes('dançar')) {
+        playAudio('danca');
+        modelEntity.setAttribute('animation-mixer', { clip: 'dance' }); // Inicia a animação de dança
+      } else if (comando.includes('parar')) {
+        playAudio('parar');
+        modelEntity.setAttribute('animation-mixer', { clip: '*' }); // Para a animação
       } else {
         playAudio('nao_entendi');
       }
