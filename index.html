@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
-  <title>Kioto Pet AR - IA</title>
+  <title>Kioto Pet AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
@@ -61,6 +61,11 @@
 
     <a-assets>
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+      <audio id="bom_dia" src="bom_dia.mp3" preload="auto"></audio>
+      <audio id="boa_tarde" src="boa_tarde.mp3" preload="auto"></audio>
+      <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
+      <audio id="qual_seu_nome" src="qual_seu_nome.mp3" preload="auto"></audio>
+      <audio id="nao_entendi" src="nao_entendi.mp3" preload="auto"></audio>
     </a-assets>
 
     <a-entity
@@ -120,56 +125,33 @@
     
     let recognition;
     let isListening = false;
-    let isPermanentlyListening = false;
     let isSpeaking = false;
 
-    // AQUI ESTÁ O URL DO SEU SERVIDOR, JÁ CORRIGIDO
-    const PROXY_SERVER_URL = 'https://a5952083-3c46-4fb2-9efd-4dcc842add19-00-3cqsrhmbwh2nz.riker.replit.dev/ask-gemini';
-
-    function startRecognition() {
-      if (recognition && !isListening && !isSpeaking) {
-        recognition.start();
+    function playAudio(audioElementId) {
+      if (isSpeaking) return;
+      
+      const audio = document.getElementById(audioElementId);
+      if (audio) {
+        isSpeaking = true;
+        audio.play();
+        audio.onended = () => {
+          isSpeaking = false;
+        };
       }
     }
 
-    function speakText(text) {
-        if (window.speechSynthesis) {
-            isSpeaking = true;
-            const utterThis = new SpeechSynthesisUtterance(text);
-            utterThis.lang = 'pt-BR';
-            
-            utterThis.onend = () => {
-                isSpeaking = false;
-                if (isPermanentlyListening) {
-                    setTimeout(startRecognition, 1000); // Reinicia a escuta após a fala
-                }
-            };
-            
-            window.speechSynthesis.speak(utterThis);
-        } else {
-            console.error('API de conversão de texto em fala não suportada.');
-        }
-    }
-
-    async function askGemini(prompt) {
-        try {
-            const response = await fetch(PROXY_SERVER_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ prompt: prompt })
-            });
-            const data = await response.json();
-            if (response.ok) {
-                speakText(data.text);
-            } else {
-                speakText('Desculpe, ocorreu um erro ao se comunicar com a inteligência artificial.');
-            }
-        } catch (error) {
-            console.error('Erro ao chamar a API do Gemini:', error);
-            speakText('Desculpe, não consegui me conectar à inteligência artificial.');
-        }
+    function speakCommand(comando) {
+      if (comando.includes('bom dia')) {
+        playAudio('bom_dia');
+      } else if (comando.includes('boa tarde')) {
+        playAudio('boa_tarde');
+      } else if (comando.includes('boa noite')) {
+        playAudio('boa_noite');
+      } else if (comando.includes('qual seu nome')) {
+        playAudio('qual_seu_nome');
+      } else {
+        playAudio('nao_entendi');
+      }
     }
 
     if ('webkitSpeechRecognition' in window) {
@@ -179,11 +161,9 @@
       recognition.interimResults = false;
 
       micButton.addEventListener('click', () => {
-        if (!isPermanentlyListening) {
-          isPermanentlyListening = true;
-          startRecognition();
+        if (!isListening) {
+          recognition.start();
         } else {
-          isPermanentlyListening = false;
           recognition.stop();
         }
       });
@@ -196,26 +176,19 @@
 
       recognition.onend = () => {
         isListening = false;
-        if (!isSpeaking && isPermanentlyListening) {
-          setTimeout(startRecognition, 1000); 
-        } else if (!isPermanentlyListening) {
-          micButton.classList.remove('listening');
-          micButton.textContent = '🎤 Falar';
-        }
+        micButton.classList.remove('listening');
+        micButton.textContent = '🎤 Falar';
       };
 
       recognition.onresult = (event) => {
         const comando = event.results[0][0].transcript.toLowerCase();
         console.log('Comando de voz:', comando);
-        
-        recognition.stop();
-        askGemini(comando);
+        speakCommand(comando);
       };
 
       recognition.onerror = (event) => {
         console.error('Erro no reconhecimento de voz:', event.error);
         if (event.error !== 'no-speech') {
-            isPermanentlyListening = false;
             micButton.classList.remove('listening');
             micButton.textContent = '🎤 Erro';
         }
