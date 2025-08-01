@@ -105,4 +105,133 @@
     };
 
     AFRAME.registerComponent('gesture-detector', {
-      init:
+      init: function () {
+        this.el.sceneEl.addEventListener('onefingermove', (event) => {
+          const rotation = this.el.getAttribute('rotation');
+          this.el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + event.detail.positionChange.x * 2,
+            z: rotation.z
+          });
+        });
+      }
+    });
+
+    arButton.addEventListener('click', () => {
+      scene.enterAR();
+    });
+
+    scene.addEventListener('enter-vr', function () {
+      if (this.is('ar-mode')) {
+        ground.setAttribute('visible', 'false');
+        sky.setAttribute('visible', 'false');
+      }
+    });
+    
+    let recognition;
+    let isListening = false;
+    let isSpeaking = false;
+
+    function playAudio(audioElementId) {
+      if (isSpeaking) {
+        return;
+      }
+      
+      const audio = document.getElementById(audioElementId);
+      if (audio) {
+        isSpeaking = true;
+        audio.play();
+        audio.onended = () => {
+          isSpeaking = false;
+        };
+      }
+    }
+
+    function speakCommand(comando) {
+      comando = comando.toLowerCase();
+
+      // Lógica para ativar a animação com o comando "dançar"
+      if (comando.includes('dançar')) {
+        playAudio('danca');
+        modelEntity.setAttribute('animation-mixer', { clip: '*', loop: 'repeat' });
+        return; 
+      }
+      
+      // Lógica para parar a animação com o comando "parar"
+      if (comando.includes('parar')) {
+        const mixer = modelEntity.components['animation-mixer'];
+        if (mixer) {
+          mixer.stopAllActions();
+        }
+        return;
+      }
+
+      // Lógica para o comando "música"
+      if (comando.includes('música')) {
+          playAudio('danca');
+          return;
+      }
+
+      // Lógica para os outros comandos de voz
+      if (comando.includes('bom dia')) {
+        playAudio('bom_dia');
+      } else if (comando.includes('boa tarde')) {
+        playAudio('boa_tarde');
+      } else if (comando.includes('boa noite')) {
+        playAudio('boa_noite');
+      } else if (comando.includes('comandos')) {
+        playAudio('comandos');
+      } else if (comando.includes('qual seu nome') || comando.includes('seu nome')) {
+        playAudio('qual_seu_nome');
+      } else if (comando.includes('olá')) {
+        playAudio('ola');
+      } else if (comando.includes('quer ser meu amigo')) {
+        playAudio('quer_ser_meu_amigo');
+      } else {
+        playAudio('nao_entendi');
+      }
+    }
+
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      micButton.addEventListener('click', () => {
+        if (!isListening) {
+          recognition.start();
+        } else {
+          recognition.stop();
+        }
+      });
+
+      recognition.onstart = () => {
+        isListening = true;
+        micButton.classList.add('listening');
+        micButton.textContent = '🎤 Ouvindo...';
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        micButton.classList.remove('listening');
+        micButton.textContent = '🎤 Falar';
+      };
+
+      recognition.onresult = (event) => {
+        const comando = event.results[0][0].transcript;
+        speakCommand(comando);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Erro no reconhecimento de voz:', event.error);
+        if (event.error !== 'no-speech') {
+            micButton.classList.remove('listening');
+            micButton.textContent = '🎤 Erro';
+        }
+      };
+
+    }
+  </script>
+</body>
+</html>
