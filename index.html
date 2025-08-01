@@ -131,6 +131,7 @@
     let recognition;
     let isListening = false;
     let isPermanentlyListening = false;
+    let currentAudio = null;
 
     function startRecognition() {
       if (recognition && !isListening) {
@@ -138,6 +139,22 @@
       }
     }
 
+    // Função centralizada para lidar com a reprodução de áudio
+    function playAudio(audioFile, callback) {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      currentAudio = new Audio(audioFile);
+      currentAudio.play();
+      currentAudio.onended = () => {
+        if (callback) {
+          callback();
+        }
+        currentAudio = null;
+      };
+    }
+    
     if ('webkitSpeechRecognition' in window) {
       recognition = new webkitSpeechRecognition();
       recognition.lang = 'pt-BR';
@@ -163,8 +180,8 @@
       recognition.onend = () => {
         isListening = false;
         if (isPermanentlyListening) {
-          // Se o modo permanente estiver ligado, reinicia após um pequeno atraso
-          setTimeout(startRecognition, 100);
+          // Atraso maior para evitar o bip constante
+          setTimeout(startRecognition, 2000); 
         } else {
           micButton.classList.remove('listening');
           micButton.textContent = '🎤 Falar';
@@ -175,48 +192,45 @@
         const comando = event.results[0][0].transcript.toLowerCase();
         console.log('Comando de voz:', comando);
         
-        let audio;
+        // INTERROMPE A ESCUTA DE VOZ IMEDIATAMENTE
+        recognition.stop();
 
         if (comando.includes('dançar')) {
           modelEntity.setAttribute('animation-mixer', '');
+          // Não há áudio, então reinicia a escuta após um pequeno atraso
+          if (isPermanentlyListening) {
+            setTimeout(startRecognition, 1000);
+          }
         } else if (comando.includes('parar')) {
           modelEntity.removeAttribute('animation-mixer');
+          if (isPermanentlyListening) {
+            setTimeout(startRecognition, 1000);
+          }
         } else {
           const arquivo = comandos[comando];
           if (arquivo) {
-            audio = new Audio(arquivo);
-            audio.play();
+            playAudio(arquivo, () => {
+              // Reinicia a escuta APENAS APÓS o áudio terminar
+              if (isPermanentlyListening) {
+                setTimeout(startRecognition, 1000);
+              }
+            });
           } else {
-            audio = new Audio('nao_entendi.mp3');
-            audio.play();
-          }
-        }
-        
-        // PAUSA A ESCUTA DE VOZ ENQUANTO O ÁUDIO ESTÁ TOCANDO
-        recognition.stop();
-        
-        if (audio) {
-          audio.onended = () => {
-            // Reinicia a escuta somente APÓS o áudio terminar
-            if (isPermanentlyListening) {
-              startRecognition();
-            }
-          };
-        } else {
-          // Se não houver áudio para tocar, reinicia imediatamente
-          if (isPermanentlyListening) {
-            startRecognition();
+            // Exemplo de como integrar com a API nativa de conversão de texto em fala
+            const synth = window.speechSynthesis;
+            const utterThis = new SpeechSynthesisUtterance('Desculpe, não entendi o comando. Tente novamente.');
+            utterThis.lang = 'pt-BR';
+            
+            utterThis.onend = () => {
+                if (isPermanentlyListening) {
+                    setTimeout(startRecognition, 1000);
+                }
+            };
+            
+            synth.speak(utterThis);
           }
         }
       };
-
-      recognition.onerror = (event) => {
-        console.error('Erro no reconhecimento de voz:', event.error);
-        // O `onend` será chamado em seguida para lidar com o estado
-      };
-
-    } else {
-      alert('Reconhecimento de voz não suportado neste navegador.');
     }
   </script>
 </body>
