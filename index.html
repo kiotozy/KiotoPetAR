@@ -48,13 +48,47 @@
       height: 100%;
       z-index: 1;
     }
+    #logoutButton {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #f44336;
+    }
   </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+  <script>
+    // Seus dados de configuração do Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyA4p0lhme7RQf1pN0idXgnbUAdR7z_4m2A",
+      authDomain: "kiotopet.firebaseapp.com",
+      projectId: "kiotopet",
+      storageBucket: "kiotopet.firebasestorage.app",
+      messagingSenderId: "200099219198",
+      appId: "1:200099219198:web:38d37babfa5fc616fd07af",
+      measurementId: "G-W493XKCZFQ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // Verifique o status da autenticação
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        // Se não houver usuário logado, redirecione para a página de login
+        window.location.href = "login.html";
+      }
+    });
+  </script>
 </head>
 <body>
   <div id="buttons">
     <button id="micButton">🎤 Falar</button>
     <button id="arButton">Ativar AR</button>
   </div>
+  <button id="logoutButton">Sair</button>
 
   <a-scene id="scene" embedded xr-mode-ui="enabled: false"
     renderer="antialias: true" gesture-detector>
@@ -96,6 +130,16 @@
     const ground = document.getElementById('ground');
     const sky = document.getElementById('sky');
     const micButton = document.getElementById('micButton');
+    const logoutButton = document.getElementById('logoutButton');
+
+    // Lógica para o botão de logout
+    logoutButton.addEventListener('click', () => {
+        auth.signOut().then(() => {
+            window.location.href = "login.html";
+        }).catch((error) => {
+            console.error("Erro ao fazer logout:", error);
+        });
+    });
 
     scene.setAttribute('vr-mode-ui', 'enabled: false');
     scene.setAttribute('ar-mode-ui', 'enabled: false');
@@ -154,7 +198,6 @@
     function speakCommand(comando) {
       comando = comando.toLowerCase();
 
-      // Lógica de animação corrigida
       if (comando.includes('dançar')) {
         modelEntity.setAttribute('animation-mixer', '');
         playAudio('danca');
@@ -166,7 +209,6 @@
         return;
       }
 
-      // Lógica para reprodução de áudio
       if (comando.includes('bom dia')) {
         playAudio('bom_dia');
       } else if (comando.includes('boa tarde')) {
