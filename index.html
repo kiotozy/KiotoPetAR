@@ -21,7 +21,8 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      z-index: 1000;
+      /* Ajuste principal: um z-index ainda maior para garantir a sobreposição */
+      z-index: 1001; 
     }
     button {
       padding: 12px 20px;
@@ -53,8 +54,8 @@
       top: 10px;
       right: 10px;
       background-color: #f44336;
-      /* Ajuste principal: um z-index ainda maior para garantir a sobreposição */
-      z-index: 1001; 
+      /* z-index ajustado para estar acima da cena 3D */
+      z-index: 1002; 
     }
   </style>
 
