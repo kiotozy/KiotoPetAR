@@ -70,6 +70,7 @@
       <audio id="comandos" src="comandos.mp3" preload="auto"></audio>
       <audio id="danca" src="danca.mp3" preload="auto"></audio>
       <audio id="quer_ser_meu_amigo" src="quer_ser_meu_amigo.mp3" preload="auto"></audio>
+      <audio id="me_conte_uma_historia" src="me_conte_uma_historia.mp3" preload="auto"></audio>
     </a-assets>
 
     <a-entity
@@ -182,6 +183,8 @@
         playAudio('quer_ser_meu_amigo');
       } else if (comando.includes('música')) {
         playAudio('danca');
+      } else if (comando.includes('me conte uma história')) {
+        playAudio('me_conte_uma_historia');
       } else {
         playAudio('nao_entendi');
       }
