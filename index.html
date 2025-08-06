@@ -53,6 +53,8 @@
       top: 10px;
       right: 10px;
       background-color: #f44336;
+      /* Ajuste principal: um z-index ainda maior para garantir a sobreposição */
+      z-index: 1001; 
     }
   </style>
 
@@ -60,7 +62,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
   <script>
-    // Seus dados de configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyA4p0lhme7RQf1pN0idXgnbUAdR7z_4m2A",
       authDomain: "kiotopet.firebaseapp.com",
@@ -74,10 +75,8 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
-    // Verifique o status da autenticação
     auth.onAuthStateChanged(user => {
       if (!user) {
-        // Se não houver usuário logado, redirecione para a página de login
         window.location.href = "login.html";
       }
     });
@@ -132,7 +131,6 @@
     const micButton = document.getElementById('micButton');
     const logoutButton = document.getElementById('logoutButton');
 
-    // Lógica para o botão de logout
     logoutButton.addEventListener('click', () => {
         auth.signOut().then(() => {
             window.location.href = "login.html";
