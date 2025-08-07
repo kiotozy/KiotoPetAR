@@ -20,7 +20,6 @@
       width: 100%;
       height: 100%;
     }
-    /* Estilo para o feed de vídeo da câmera */
     #camera-feed {
       position: fixed;
       top: 0;
@@ -28,8 +27,8 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      z-index: -2; /* Fica atrás da cena A-Frame */
-      display: none; /* Começa oculto */
+      z-index: -2;
+      display: none;
     }
   </style>
 
@@ -60,7 +59,7 @@
 <body>
   <video id="camera-feed" autoplay></video>
 
-  <a-scene id="scene" embedded xr-mode-ui="enabled: false"
+  <a-scene id="scene" embedded
     renderer="antialias: true" gesture-detector>
 
     <a-assets>
@@ -95,12 +94,21 @@
       <a-entity id="ui-buttons" position="0 -0.5 -1">
         
         <a-entity id="micButton"
-                  position="0 0.05 0"
+                  position="0 0.2 0"
                   geometry="primitive: plane; width: 0.4; height: 0.15"
                   material="color: #03a9f4"
                   event-set__hover="material.color: #007bb6"
                   event-set__leave="material.color: #03a9f4">
           <a-text value="🎤 Falar" align="center" position="0 0 0.01" color="white" width="1"></a-text>
+        </a-entity>
+
+        <a-entity id="arButton"
+                  position="0 0 0"
+                  geometry="primitive: plane; width: 0.4; height: 0.15"
+                  material="color: #03a9f4"
+                  event-set__hover="material.color: #007bb6"
+                  event-set__leave="material.color: #03a9f4">
+          <a-text value="Ativar AR" align="center" position="0 0 0.01" color="white" width="1"></a-text>
         </a-entity>
 
         <a-entity id="logoutButton"
@@ -110,15 +118,6 @@
                   event-set__hover="material.color: #d32f2f"
                   event-set__leave="material.color: #f44336">
           <a-text value="Sair" align="center" position="0 0 0.01" color="white" width="1"></a-text>
-        </a-entity>
-
-        <a-entity id="arButton"
-                  position="0 0.3 0"
-                  geometry="primitive: plane; width: 0.4; height: 0.15"
-                  material="color: #03a9f4"
-                  event-set__hover="material.color: #007bb6"
-                  event-set__leave="material.color: #03a9f4">
-          <a-text value="Ativar AR" align="center" position="0 0 0.01" color="white" width="1"></a-text>
         </a-entity>
 
       </a-entity>
@@ -141,10 +140,8 @@
     const cameraFeed = document.getElementById('camera-feed');
     let arModeActive = false;
 
-    // Função para alternar o modo AR simulado
     function toggleArMode() {
       if (!arModeActive) {
-        // Ativar AR
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
           .then(stream => {
             cameraFeed.srcObject = stream;
@@ -159,7 +156,6 @@
             alert('Não foi possível acessar a câmera. Verifique as permissões.');
           });
       } else {
-        // Desativar AR
         const stream = cameraFeed.srcObject;
         const tracks = stream.getTracks();
         tracks.forEach(track => track.stop());
