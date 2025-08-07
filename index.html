@@ -1,567 +1,284 @@
 <!DOCTYPE html>
-
 <html lang="pt-br">
-
 <head>
-
-  <meta charset="utf-8">
-
-  <title>Kioto Pet AR</title>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
-
-  <style>
-
-    body {
-
-      margin: 0;
-
-      overflow: hidden;
-
-      font-family: sans-serif;
-
-    }
-
-    #buttons {
-
-      position: fixed;
-
-      bottom: 20px;
-
-      left: 0;
-
-      width: 100%;
-
-      display: flex;
-
-      justify-content: center;
-
-      gap: 10px;
-
-      z-index: 1000;
-
-    }
-
-    button {
-
-      padding: 12px 20px;
-
-      font-size: 16px;
-
-      color: white;
-
-      border: none;
-
-      border-radius: 8px;
-
-      cursor: pointer;
-
-    }
-
-    #micButton {
-
-      background-color: #03a9f4;
-
-    }
-
-    #micButton.listening {
-
-      background-color: green;
-
-    }
-
-    #arButton {
-
-      background-color: #03a9f4;
-
-    }
-
-    a-scene {
-
-      position: absolute;
-
-      top: 0;
-
-      left: 0;
-
-      width: 100%;
-
-      height: 100%;
-
-      z-index: 1;
-
-    }
-
-    #logoutButton {
-
-      position: fixed;
-
-      top: 10px;
-
-      right: 10px;
-
-      background-color: #f44336;
-
-      /* Ajuste principal: um z-index ainda maior para garantir a sobreposição */
-
-      z-index: 1001; 
-
-    }
-
-  </style>
-
-
-
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-
-
-
-  <script>
-
-    const firebaseConfig = {
-
-      apiKey: "AIzaSyA4p0lhme7RQf1pN0idXgnbUAdR7z_4m2A",
-
-      authDomain: "kiotopet.firebaseapp.com",
-
-      projectId: "kiotopet",
-
-      storageBucket: "kiotopet.firebasestorage.app",
-
-      messagingSenderId: "200099219198",
-
-      appId: "1:200099219198:web:38d37babfa5fc616fd07af",
-
-      measurementId: "G-W493XKCZFQ"
-
-    };
-
-
-
-    firebase.initializeApp(firebaseConfig);
-
-    const auth = firebase.auth();
-
-
-
-    auth.onAuthStateChanged(user => {
-
-      if (!user) {
-
-        window.location.href = "login.html";
-
-      }
-
-    });
-
-  </script>
-
+  <meta charset="utf-8">
+  <title>Kioto Pet AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    #buttons {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      z-index: 1000;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #micButton {
+      background-color: #03a9f4;
+    }
+    #micButton.listening {
+      background-color: green;
+    }
+    #arButton {
+      background-color: #03a9f4;
+    }
+    a-scene {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    #logoutButton {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #f44336;
+      /* Ajuste principal: um z-index ainda maior para garantir a sobreposição */
+      z-index: 1001; 
+    }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA4p0lhme7RQf1pN0idXgnbUAdR7z_4m2A",
+      authDomain: "kiotopet.firebaseapp.com",
+      projectId: "kiotopet",
+      storageBucket: "kiotopet.firebasestorage.app",
+      messagingSenderId: "200099219198",
+      appId: "1:200099219198:web:38d37babfa5fc616fd07af",
+      measurementId: "G-W493XKCZFQ"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    auth.onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "login.html";
+      }
+    });
+  </script>
 </head>
-
 <body>
-
-  <div id="buttons">
-
-    <button id="micButton">🎤 Falar</button>
-
-    <button id="arButton">Ativar AR</button>
-
-  </div>
-
-  <button id="logoutButton">Sair</button>
-
-
-
-  <a-scene id="scene" embedded xr-mode-ui="enabled: false"
-
-    renderer="antialias: true" gesture-detector>
-
-
-
-    <a-assets>
-
-      <a-asset-item id="model" src="kioto.glb"></a-asset-item>
-
-      <audio id="bom_dia" src="bom_dia.mp3" preload="auto"></audio>
-
-      <audio id="boa_tarde" src="boa_tarde.mp3" preload="auto"></audio>
-
-      <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
-
-      <audio id="qual_seu_nome" src="qual_seu_nome.mp3" preload="auto"></audio>
-
-      <audio id="nao_entendi" src="nao_entendi.mp3" preload="auto"></audio>
-
-      <audio id="ola" src="ola.mp3" preload="auto"></audio>
-
-      <audio id="comandos" src="comandos.mp3" preload="auto"></audio>
-
-      <audio id="danca" src="danca.mp3" preload="auto"></audio>
-
-      <audio id="quer_ser_meu_amigo" src="quer_ser_meu_amigo.mp3" preload="auto"></audio>
-
-      <audio id="me_conte_uma_historia" src="me_conte_uma_historia.mp3" preload="auto"></audio>
-
-    </a-assets>
-
-
-
-    <a-entity
-
-      id="glb"
-
-      gltf-model="#model"
-
-      animation-mixer
-
-      rotation="0 0 0"
-
-      position="0 0 -2"
-
-      scale="1 1 1"
-
-      gesture-detector
-
-    ></a-entity>
-
-
-
-    <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
-
-    <a-sky id="sky" color="#ECECEC"></a-sky>
-
-    
-
-    <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
-
-  </a-scene>
-
-
-
-  <script>
-
-    const modelEntity = document.getElementById('glb');
-
-    const arButton = document.getElementById('arButton');
-
-    const scene = document.querySelector('a-scene');
-
-    const ground = document.getElementById('ground');
-
-    const sky = document.getElementById('sky');
-
-    const micButton = document.getElementById('micButton');
-
-    const logoutButton = document.getElementById('logoutButton');
-
-
-
-    logoutButton.addEventListener('click', () => {
-
-        auth.signOut().then(() => {
-
-            window.location.href = "login.html";
-
-        }).catch((error) => {
-
-            console.error("Erro ao fazer logout:", error);
-
-        });
-
-    });
-
-
-
-    scene.setAttribute('vr-mode-ui', 'enabled: false');
-
-    scene.setAttribute('ar-mode-ui', 'enabled: false');
-
-
-
-    window.onload = function() {
-
-        modelEntity.setAttribute('animation-mixer', '');
-
-    };
-
-
-
-    AFRAME.registerComponent('gesture-detector', {
-
-      init: function () {
-
-        this.el.sceneEl.addEventListener('onefingermove', (event) => {
-
-          const rotation = this.el.getAttribute('rotation');
-
-          this.el.setAttribute('rotation', {
-
-            x: rotation.x,
-
-            y: rotation.y + event.detail.positionChange.x * 2,
-
-            z: rotation.z
-
-          });
-
-        });
-
-      }
-
-    });
-
-
-
-    arButton.addEventListener('click', () => {
-
-      scene.enterAR();
-
-    });
-
-
-
-    scene.addEventListener('enter-vr', function () {
-
-      if (this.is('ar-mode')) {
-
-        ground.setAttribute('visible', 'false');
-
-        sky.setAttribute('visible', 'false');
-
-      }
-
-    });
-
-    
-
-    let recognition;
-
-    let isListening = false;
-
-    let isSpeaking = false;
-
-    let currentAudio = null;
-
-
-
-    function playAudio(audioElementId) {
-
-      if (currentAudio) {
-
-        currentAudio.pause();
-
-        currentAudio.currentTime = 0;
-
-      }
-
-
-
-      const audio = document.getElementById(audioElementId);
-
-      if (audio) {
-
-        isSpeaking = true;
-
-        currentAudio = audio;
-
-        audio.play();
-
-        audio.onended = () => {
-
-          isSpeaking = false;
-
-          currentAudio = null;
-
-        };
-
-      }
-
-    }
-
-
-
-    function speakCommand(comando) {
-
-      comando = comando.toLowerCase();
-
-
-
-      if (comando.includes('dançar')) {
-
-        modelEntity.setAttribute('animation-mixer', '');
-
-        playAudio('danca');
-
-        return;
-
-      }
-
-      
-
-      if (comando.includes('parar')) {
-
-        modelEntity.removeAttribute('animation-mixer');
-
-        return;
-
-      }
-
-
-
-      if (comando.includes('bom dia')) {
-
-        playAudio('bom_dia');
-
-      } else if (comando.includes('boa tarde')) {
-
-        playAudio('boa_tarde');
-
-      } else if (comando.includes('boa noite')) {
-
-        playAudio('boa_noite');
-
-      } else if (comando.includes('comandos')) {
-
-        playAudio('comandos');
-
-      } else if (comando.includes('qual seu nome') || comando.includes('seu nome')) {
-
-        playAudio('qual_seu_nome');
-
-      } else if (comando.includes('olá')) {
-
-        playAudio('ola');
-
-      } else if (comando.includes('quer ser meu amigo')) {
-
-        playAudio('quer_ser_meu_amigo');
-
-      } else if (comando.includes('música')) {
-
-        playAudio('danca');
-
-      } else if (comando.includes('me conte uma história')) {
-
-        playAudio('me_conte_uma_historia');
-
-      } else {
-
-        playAudio('nao_entendi');
-
-      }
-
-    }
-
-
-
-    if ('webkitSpeechRecognition' in window) {
-
-      recognition = new webkitSpeechRecognition();
-
-      recognition.lang = 'pt-BR';
-
-      recognition.continuous = false;
-
-      recognition.interimResults = false;
-
-
-
-      micButton.addEventListener('click', () => {
-
-        if (isListening) {
-
-          recognition.stop();
-
-        } else if (isSpeaking) {
-
-          if (currentAudio) {
-
-            currentAudio.pause();
-
-            currentAudio.currentTime = 0;
-
-            isSpeaking = false;
-
-            currentAudio = null;
-
-          }
-
-          recognition.start();
-
-        } else {
-
-          recognition.start();
-
-        }
-
-      });
-
-
-
-      recognition.onstart = () => {
-
-        isListening = true;
-
-        micButton.classList.add('listening');
-
-        micButton.textContent = '🎤 Ouvindo...';
-
-      };
-
-
-
-      recognition.onend = () => {
-
-        isListening = false;
-
-        micButton.classList.remove('listening');
-
-        micButton.textContent = '🎤 Falar';
-
-      };
-
-
-
-      recognition.onresult = (event) => {
-
-        const comando = event.results[0][0].transcript.toLowerCase();
-
-        console.log('Comando de voz:', comando);
-
-        speakCommand(comando);
-
-      };
-
-
-
-      recognition.onerror = (event) => {
-
-        console.error('Erro no reconhecimento de voz:', event.error);
-
-        if (event.error !== 'no-speech') {
-
-            micButton.classList.remove('listening');
-
-            micButton.textContent = '🎤 Erro';
-
-        }
-
-      };
-
-
-
-    }
-
-  </script>
-
+  <div id="buttons">
+    <button id="micButton">🎤 Falar</button>
+    <button id="arButton">Ativar AR</button>
+  </div>
+  <button id="logoutButton">Sair</button>
+
+  <a-scene id="scene" embedded xr-mode-ui="enabled: false"
+    renderer="antialias: true" gesture-detector>
+
+    <a-assets>
+      <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+      <audio id="bom_dia" src="bom_dia.mp3" preload="auto"></audio>
+      <audio id="boa_tarde" src="boa_tarde.mp3" preload="auto"></audio>
+      <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
+      <audio id="qual_seu_nome" src="qual_seu_nome.mp3" preload="auto"></audio>
+      <audio id="nao_entendi" src="nao_entendi.mp3" preload="auto"></audio>
+      <audio id="ola" src="ola.mp3" preload="auto"></audio>
+      <audio id="comandos" src="comandos.mp3" preload="auto"></audio>
+      <audio id="danca" src="danca.mp3" preload="auto"></audio>
+      <audio id="quer_ser_meu_amigo" src="quer_ser_meu_amigo.mp3" preload="auto"></audio>
+      <audio id="me_conte_uma_historia" src="me_conte_uma_historia.mp3" preload="auto"></audio>
+    </a-assets>
+
+    <a-entity
+      id="glb"
+      gltf-model="#model"
+      animation-mixer
+      rotation="0 0 0"
+      position="0 0 -2"
+      scale="1 1 1"
+      gesture-detector
+    ></a-entity>
+
+    <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+    <a-sky id="sky" color="#ECECEC"></a-sky>
+    
+    <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
+  </a-scene>
+
+  <script>
+    const modelEntity = document.getElementById('glb');
+    const arButton = document.getElementById('arButton');
+    const scene = document.querySelector('a-scene');
+    const ground = document.getElementById('ground');
+    const sky = document.getElementById('sky');
+    const micButton = document.getElementById('micButton');
+    const logoutButton = document.getElementById('logoutButton');
+
+    logoutButton.addEventListener('click', () => {
+        auth.signOut().then(() => {
+            window.location.href = "login.html";
+        }).catch((error) => {
+            console.error("Erro ao fazer logout:", error);
+        });
+    });
+
+    scene.setAttribute('vr-mode-ui', 'enabled: false');
+    scene.setAttribute('ar-mode-ui', 'enabled: false');
+
+    window.onload = function() {
+        modelEntity.setAttribute('animation-mixer', '');
+    };
+
+    AFRAME.registerComponent('gesture-detector', {
+      init: function () {
+        this.el.sceneEl.addEventListener('onefingermove', (event) => {
+          const rotation = this.el.getAttribute('rotation');
+          this.el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + event.detail.positionChange.x * 2,
+            z: rotation.z
+          });
+        });
+      }
+    });
+
+    arButton.addEventListener('click', () => {
+      scene.enterAR();
+    });
+
+    scene.addEventListener('enter-vr', function () {
+      if (this.is('ar-mode')) {
+        ground.setAttribute('visible', 'false');
+        sky.setAttribute('visible', 'false');
+      }
+    });
+    
+    let recognition;
+    let isListening = false;
+    let isSpeaking = false;
+    let currentAudio = null;
+
+    function playAudio(audioElementId) {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+
+      const audio = document.getElementById(audioElementId);
+      if (audio) {
+        isSpeaking = true;
+        currentAudio = audio;
+        audio.play();
+        audio.onended = () => {
+          isSpeaking = false;
+          currentAudio = null;
+        };
+      }
+    }
+
+    function speakCommand(comando) {
+      comando = comando.toLowerCase();
+
+      if (comando.includes('dançar')) {
+        modelEntity.setAttribute('animation-mixer', '');
+        playAudio('danca');
+        return;
+      }
+      
+      if (comando.includes('parar')) {
+        modelEntity.removeAttribute('animation-mixer');
+        return;
+      }
+
+      if (comando.includes('bom dia')) {
+        playAudio('bom_dia');
+      } else if (comando.includes('boa tarde')) {
+        playAudio('boa_tarde');
+      } else if (comando.includes('boa noite')) {
+        playAudio('boa_noite');
+      } else if (comando.includes('comandos')) {
+        playAudio('comandos');
+      } else if (comando.includes('qual seu nome') || comando.includes('seu nome')) {
+        playAudio('qual_seu_nome');
+      } else if (comando.includes('olá')) {
+        playAudio('ola');
+      } else if (comando.includes('quer ser meu amigo')) {
+        playAudio('quer_ser_meu_amigo');
+      } else if (comando.includes('música')) {
+        playAudio('danca');
+      } else if (comando.includes('me conte uma história')) {
+        playAudio('me_conte_uma_historia');
+      } else {
+        playAudio('nao_entendi');
+      }
+    }
+
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      micButton.addEventListener('click', () => {
+        if (isListening) {
+          recognition.stop();
+        } else if (isSpeaking) {
+          if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            isSpeaking = false;
+            currentAudio = null;
+          }
+          recognition.start();
+        } else {
+          recognition.start();
+        }
+      });
+
+      recognition.onstart = () => {
+        isListening = true;
+        micButton.classList.add('listening');
+        micButton.textContent = '🎤 Ouvindo...';
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        micButton.classList.remove('listening');
+        micButton.textContent = '🎤 Falar';
+      };
+
+      recognition.onresult = (event) => {
+        const comando = event.results[0][0].transcript.toLowerCase();
+        console.log('Comando de voz:', comando);
+        speakCommand(comando);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Erro no reconhecimento de voz:', event.error);
+        if (event.error !== 'no-speech') {
+            micButton.classList.remove('listening');
+            micButton.textContent = '🎤 Erro';
+        }
+      };
+
+    }
+  </script>
 </body>
-
 </html>
