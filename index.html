@@ -8,10 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
   <style>
-    /* CORREÇÃO: Garante que a altura total da janela seja utilizada */
-    html, body {
-      width: 100%;
-      height: 100%;
+    body {
       margin: 0;
       overflow: hidden;
       font-family: sans-serif;
@@ -95,7 +92,7 @@
     renderer="antialias: true" gesture-detector>
 
     <a-assets>
-      <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+            <a-asset-item id="model" src="novo_modelo.glb"></a-asset-item>
       <audio id="bom_dia" src="bom_dia.mp3" preload="auto"></audio>
       <audio id="boa_tarde" src="boa_tarde.mp3" preload="auto"></audio>
       <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
@@ -104,13 +101,14 @@
       <audio id="ola" src="ola.mp3" preload="auto"></audio>
       <audio id="comandos" src="comandos.mp3" preload="auto"></audio>
       <audio id="danca" src="danca.mp3" preload="auto"></audio>
-      <audio id="quer_ser_meu_amigo" src="quer_ser_meu_amigo.mp3" preload="auto"></audio>
+      <audio id="quer_ser_meu_amigo" src="quer_ser_meu_amigo.mpod" preload="auto"></audio>
       <audio id="me_conte_uma_historia" src="me_conte_uma_historia.mp3" preload="auto"></audio>
     </a-assets>
 
     <a-entity
       id="glb"
       gltf-model="#model"
+      animation-mixer
       rotation="0 0 0"
       position="0 0 -2"
       scale="1 1 1"
@@ -142,6 +140,11 @@
 
     scene.setAttribute('vr-mode-ui', 'enabled: false');
     scene.setAttribute('ar-mode-ui', 'enabled: false');
+
+    window.onload = function() {
+        // Remove a animação inicial para que o modelo comece na pose T
+        modelEntity.removeAttribute('animation-mixer');
+    };
 
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
@@ -193,28 +196,39 @@
     function speakCommand(comando) {
       comando = comando.toLowerCase();
 
-      // Comandos de animação sem áudio
+      // Remove a animação atual antes de aplicar uma nova, se houver
+      modelEntity.removeAttribute('animation-mixer');
+
       if (comando.includes('chute')) {
-        modelEntity.setAttribute('animation-mixer', {clip: 'chute', loop: 'once'});
+        // Ativa a animação "chute"
+        modelEntity.setAttribute('animation-mixer', {
+          clip: 'chute',
+          loop: 'once'
+        });
         return;
       }
+
       if (comando.includes('luta')) {
-        modelEntity.setAttribute('animation-mixer', {clip: 'capoeira', loop: 'repeat'});
+        // Ativa a animação "capoeira"
+        modelEntity.setAttribute('animation-mixer', {
+          clip: 'capoeira',
+          loop: 'once'
+        });
         return;
       }
+      
       if (comando.includes('parar')) {
+        // Remove a animação, fazendo com que o modelo volte para a pose inicial
         modelEntity.removeAttribute('animation-mixer');
         return;
       }
 
-      // Comando de animação com áudio
       if (comando.includes('dançar')) {
-        modelEntity.setAttribute('animation-mixer', '');
+        // Apenas toca o áudio, como solicitado
         playAudio('danca');
         return;
       }
 
-      // Comandos de áudio
       if (comando.includes('bom dia')) {
         playAudio('bom_dia');
       } else if (comando.includes('boa tarde')) {
