@@ -92,7 +92,7 @@
     renderer="antialias: true" gesture-detector>
 
     <a-assets>
-            <a-asset-item id="model" src="novo_modelo.glb"></a-asset-item>
+      <a-asset-item id="model" src="novo_modelo.glb"></a-asset-item>
       <audio id="bom_dia" src="bom_dia.mp3" preload="auto"></audio>
       <audio id="boa_tarde" src="boa_tarde.mp3" preload="auto"></audio>
       <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
@@ -108,7 +108,6 @@
     <a-entity
       id="glb"
       gltf-model="#model"
-      animation-mixer
       rotation="0 0 0"
       position="0 0 -2"
       scale="1 1 1"
@@ -142,9 +141,18 @@
     scene.setAttribute('ar-mode-ui', 'enabled: false');
 
     window.onload = function() {
-        // Remove a animação inicial para que o modelo comece na pose T
         modelEntity.removeAttribute('animation-mixer');
     };
+
+    // Adicionando um listener para o carregamento do modelo
+    modelEntity.addEventListener('model-loaded', () => {
+        console.log('Modelo GLB carregado. Ajustando posição e escala.');
+        // Tente diferentes valores de escala para encontrar o ideal. Comece com 0.5 0.5 0.5 e aumente se precisar.
+        modelEntity.setAttribute('scale', '0.5 0.5 0.5');
+        // Ajuste a posição para o modelo ficar no chão e não na frente da câmera.
+        // A posição "y" de 0 geralmente funciona, pois a base do modelo é 0,0,0
+        modelEntity.setAttribute('position', '0 0 -2');
+    });
 
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
@@ -196,11 +204,9 @@
     function speakCommand(comando) {
       comando = comando.toLowerCase();
 
-      // Remove a animação atual antes de aplicar uma nova, se houver
       modelEntity.removeAttribute('animation-mixer');
 
       if (comando.includes('chute')) {
-        // Ativa a animação "chute"
         modelEntity.setAttribute('animation-mixer', {
           clip: 'chute',
           loop: 'once'
@@ -209,7 +215,6 @@
       }
 
       if (comando.includes('luta')) {
-        // Ativa a animação "capoeira"
         modelEntity.setAttribute('animation-mixer', {
           clip: 'capoeira',
           loop: 'once'
@@ -218,13 +223,11 @@
       }
       
       if (comando.includes('parar')) {
-        // Remove a animação, fazendo com que o modelo volte para a pose inicial
         modelEntity.removeAttribute('animation-mixer');
         return;
       }
 
       if (comando.includes('dançar')) {
-        // Apenas toca o áudio, como solicitado
         playAudio('danca');
         return;
       }
@@ -299,7 +302,6 @@
             micButton.textContent = '🎤 Erro';
         }
       };
-
     }
   </script>
 </body>
