@@ -13,43 +13,6 @@
       overflow: hidden;
       font-family: sans-serif;
     }
-    /* Estilo para o novo contêiner de todos os botões */
-    #ui-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none; /* Permite interagir com a cena A-Frame por padrão */
-      z-index: 1000;
-    }
-    #buttons {
-      position: absolute;
-      bottom: 20px;
-      left: 0;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      pointer-events: auto; /* Garante que os botões dentro do contêiner sejam clicáveis */
-    }
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    #micButton {
-      background-color: #03a9f4;
-    }
-    #micButton.listening {
-      background-color: green;
-    }
-    #arButton {
-      background-color: #03a9f4;
-    }
     a-scene {
       position: absolute;
       top: 0;
@@ -57,12 +20,16 @@
       width: 100%;
       height: 100%;
     }
-    #logoutButton {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background-color: #f44336;
-      pointer-events: auto; /* Garante que o botão de logout seja clicável */
+    /* Estilo para o feed de vídeo da câmera */
+    #camera-feed {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -2; /* Fica atrás da cena A-Frame */
+      display: none; /* Começa oculto */
     }
   </style>
 
@@ -91,14 +58,8 @@
   </script>
 </head>
 <body>
-  <div id="ui-container">
-    <div id="buttons">
-      <button id="micButton">🎤 Falar</button>
-      <button id="arButton">Ativar AR</button>
-    </div>
-    <button id="logoutButton">Sair</button>
-  </div>
-  
+  <video id="camera-feed" autoplay></video>
+
   <a-scene id="scene" embedded xr-mode-ui="enabled: false"
     renderer="antialias: true" gesture-detector>
 
@@ -129,17 +90,87 @@
     <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
     <a-sky id="sky" color="#ECECEC"></a-sky>
     
-    <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
+    <a-entity id="camera" camera position="0 1.6 0" look-controls="enabled: true">
+      
+      <a-entity id="ui-buttons" position="0 -0.5 -1">
+        
+        <a-entity id="micButton"
+                  position="0 0.05 0"
+                  geometry="primitive: plane; width: 0.4; height: 0.15"
+                  material="color: #03a9f4"
+                  event-set__hover="material.color: #007bb6"
+                  event-set__leave="material.color: #03a9f4">
+          <a-text value="🎤 Falar" align="center" position="0 0 0.01" color="white" width="1"></a-text>
+        </a-entity>
+
+        <a-entity id="logoutButton"
+                  position="0 -0.2 0"
+                  geometry="primitive: plane; width: 0.4; height: 0.15"
+                  material="color: #f44336"
+                  event-set__hover="material.color: #d32f2f"
+                  event-set__leave="material.color: #f44336">
+          <a-text value="Sair" align="center" position="0 0 0.01" color="white" width="1"></a-text>
+        </a-entity>
+
+        <a-entity id="arButton"
+                  position="0 0.3 0"
+                  geometry="primitive: plane; width: 0.4; height: 0.15"
+                  material="color: #03a9f4"
+                  event-set__hover="material.color: #007bb6"
+                  event-set__leave="material.color: #03a9f4">
+          <a-text value="Ativar AR" align="center" position="0 0 0.01" color="white" width="1"></a-text>
+        </a-entity>
+
+      </a-entity>
+      
+    </a-entity>
+
   </a-scene>
 
   <script>
     const modelEntity = document.getElementById('glb');
-    const arButton = document.getElementById('arButton');
     const scene = document.querySelector('a-scene');
     const ground = document.getElementById('ground');
     const sky = document.getElementById('sky');
+
+    const uiButtons = document.getElementById('ui-buttons');
     const micButton = document.getElementById('micButton');
+    const arButton = document.getElementById('arButton');
     const logoutButton = document.getElementById('logoutButton');
+
+    const cameraFeed = document.getElementById('camera-feed');
+    let arModeActive = false;
+
+    // Função para alternar o modo AR simulado
+    function toggleArMode() {
+      if (!arModeActive) {
+        // Ativar AR
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+          .then(stream => {
+            cameraFeed.srcObject = stream;
+            cameraFeed.style.display = 'block';
+            ground.setAttribute('visible', 'false');
+            sky.setAttribute('visible', 'false');
+            arButton.querySelector('a-text').setAttribute('value', 'Desativar AR');
+            arModeActive = true;
+          })
+          .catch(err => {
+            console.error('Erro ao acessar a câmera: ', err);
+            alert('Não foi possível acessar a câmera. Verifique as permissões.');
+          });
+      } else {
+        // Desativar AR
+        const stream = cameraFeed.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+        cameraFeed.srcObject = null;
+        cameraFeed.style.display = 'none';
+        ground.setAttribute('visible', 'true');
+        sky.setAttribute('visible', 'true');
+        arButton.querySelector('a-text').setAttribute('value', 'Ativar AR');
+        arModeActive = false;
+      }
+    }
 
     logoutButton.addEventListener('click', () => {
         auth.signOut().then(() => {
@@ -149,8 +180,25 @@
         });
     });
 
-    scene.setAttribute('vr-mode-ui', 'enabled: false');
-    scene.setAttribute('ar-mode-ui', 'enabled: false');
+    micButton.addEventListener('click', () => {
+        if (isListening) {
+            recognition.stop();
+        } else if (isSpeaking) {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                isSpeaking = false;
+                currentAudio = null;
+            }
+            recognition.start();
+        } else {
+            recognition.start();
+        }
+    });
+
+    arButton.addEventListener('click', () => {
+      toggleArMode();
+    });
 
     window.onload = function() {
         modelEntity.setAttribute('animation-mixer', '');
@@ -167,23 +215,6 @@
           });
         });
       }
-    });
-
-    arButton.addEventListener('click', () => {
-      scene.enterAR();
-    });
-
-    scene.addEventListener('enter-vr', function () {
-      if (this.is('ar-mode')) {
-        ground.setAttribute('visible', 'false');
-        sky.setAttribute('visible', 'false');
-      }
-    });
-    
-    // NOVO: Adicionamos um listener para o evento de saída do modo AR
-    scene.addEventListener('exit-vr', function () {
-      ground.setAttribute('visible', 'true');
-      sky.setAttribute('visible', 'true');
     });
 
     let recognition;
@@ -270,14 +301,12 @@
 
       recognition.onstart = () => {
         isListening = true;
-        micButton.classList.add('listening');
-        micButton.textContent = '🎤 Ouvindo...';
+        micButton.querySelector('a-text').setAttribute('value', '🎤 Ouvindo...');
       };
 
       recognition.onend = () => {
         isListening = false;
-        micButton.classList.remove('listening');
-        micButton.textContent = '🎤 Falar';
+        micButton.querySelector('a-text').setAttribute('value', '🎤 Falar');
       };
 
       recognition.onresult = (event) => {
@@ -289,11 +318,9 @@
       recognition.onerror = (event) => {
         console.error('Erro no reconhecimento de voz:', event.error);
         if (event.error !== 'no-speech') {
-            micButton.classList.remove('listening');
-            micButton.textContent = '🎤 Erro';
+            micButton.querySelector('a-text').setAttribute('value', '🎤 Erro');
         }
       };
-
     }
   </script>
 </body>
