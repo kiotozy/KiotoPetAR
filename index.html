@@ -118,11 +118,12 @@
     </a-entity>
 
     <a-sphere id="ball"
-      position="1 1 -3"
+      position="0 0.5 -1.5"
       radius="0.08"
       color="#FFC107"
       dynamic-body="shape: sphere; mass: 1; linearDamping: 0.5; angularDamping: 0.5; restitution: 0.8;"
       drag-and-throw
+      class="interactable"
       collision-filter="group: ball; mask: default, ground, wall;">
     </a-sphere>
 
@@ -143,7 +144,7 @@
     <a-sky id="sky" color="#ECECEC"></a-sky>
 
     <a-entity camera position="0 1.6 0" look-controls="enabled: true">
-      <a-cursor></a-cursor>
+      <a-cursor raycaster="objects: .interactable;"></a-cursor>
     </a-entity>
   </a-scene>
 
@@ -183,22 +184,45 @@
     });
 
     // NOVO COMPONENTE PARA ARRASTAR E SOLTAR A BOLINHA
-    // Ajustado para interação com toque em dispositivos móveis
     AFRAME.registerComponent('drag-and-throw', {
+      schema: {
+        speed: { type: 'number', default: 20 }
+      },
       init: function () {
         this.isDragging = false;
-        this.lastPosition = null;
+        this.lastPosition = new AFRAME.THREE.Vector3();
         this.lastTime = performance.now();
         this.velocity = new AFRAME.THREE.Vector3();
+        
+        // Use os eventos de cursor do A-Frame
+        this.el.addEventListener('mousedown', this.startDrag.bind(this));
+        this.el.addEventListener('mouseup', this.endDrag.bind(this));
+        
+        // Use os eventos de toque para dispositivos móveis
         this.el.addEventListener('touchstart', this.startDrag.bind(this));
         this.el.addEventListener('touchend', this.endDrag.bind(this));
-        window.addEventListener('touchmove', this.onMove.bind(this));
+      },
+
+      tick: function (time, timeDelta) {
+        if (!this.isDragging) return;
+
+        // Calcula a nova posição da bolinha com base no cursor/toque
+        const intersection = this.el.sceneEl.components.raycaster.getIntersection();
+        if (intersection) {
+          const newPos = new AFRAME.THREE.Vector3().copy(intersection.point);
+          this.el.object3D.position.copy(newPos);
+          
+          // Calcula a velocidade de arrasto
+          if (timeDelta > 0) {
+            this.velocity.copy(newPos).sub(this.lastPosition).divideScalar(timeDelta / 1000);
+          }
+          this.lastPosition.copy(newPos);
+        }
       },
 
       startDrag: function (evt) {
-        if (!this.el.getAttribute('visible')) return;
         this.isDragging = true;
-        this.el.body.type = 'kinematic';
+        this.el.body.type = 'kinematic'; // Permite mover a bolinha manualmente
         this.lastPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
         this.lastTime = performance.now();
       },
@@ -206,46 +230,20 @@
       endDrag: function (evt) {
         if (!this.isDragging) return;
         this.isDragging = false;
-        this.el.body.type = 'dynamic';
+        this.el.body.type = 'dynamic'; // Volta a ser afetada pela física
 
         if (this.velocity.length() > 0) {
           const impulse = new CANNON.Vec3(
-            this.velocity.x * 20,
-            this.velocity.y * 20,
-            this.velocity.z * 20
+            this.velocity.x * this.data.speed,
+            this.velocity.y * this.data.speed,
+            this.velocity.z * this.data.speed
           );
           this.el.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
-        }
-      },
-
-      onMove: function (evt) {
-        if (!this.isDragging || !evt.touches || evt.touches.length === 0) return;
-
-        const touch = evt.touches[0];
-        const worldPos = new THREE.Vector3();
-        const camera = scene.camera;
-        const mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
-        const mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
-
-        const intersection = raycaster.intersectObjects([ground.object3D], true)[0];
-        if (intersection) {
-          const newPos = new THREE.Vector3().copy(intersection.point).add(new THREE.Vector3(0, this.el.getAttribute('radius'), 0));
-          this.el.object3D.position.copy(newPos);
-
-          const currentTime = performance.now();
-          const timeDelta = currentTime - this.lastTime;
-          if (timeDelta > 0) {
-            this.velocity.copy(newPos).sub(this.lastPosition).divideScalar(timeDelta / 1000);
-          }
-          this.lastPosition.copy(newPos);
-          this.lastTime = currentTime;
         }
       }
     });
 
-    // ROTACIONAR MODELO COM DEDO
+    // ROTACIONAR MODELO COM DEDO (código original)
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
         this.el.sceneEl.addEventListener('onefingermove', (event) => {
@@ -257,14 +255,6 @@
           });
         });
       }
-    });
-    
-    // Adicione esta parte para evitar o conflito com o a-cursor
-    scene.addEventListener('loaded', () => {
-        const ballCursor = document.querySelector('#ball a-cursor');
-        if(ballCursor) {
-            ballCursor.parentNode.removeChild(ballCursor);
-        }
     });
 
     // ÁUDIO (código original)
