@@ -3,173 +3,162 @@
   <head>
     <meta charset="utf-8" />
     <title>Kioto AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    
-    <!-- A-Frame & extras -->
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.0/dist/aframe-ar.min.js"></script>
-
+    <meta name="description" content="Kioto AR Experience" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@4.0.5/dist/aframe-gesture-detector.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.2/aframe-ar.min.js"></script>
     <style>
-      .a-enter-vr-button {
-        display: none !important;
+      body {
+        margin: 0;
+        overflow: hidden;
       }
-
-      .action-buttons {
+      #buttons {
         position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
+        bottom: 10px;
+        left: 10px;
         display: flex;
-        flex-direction: row;
         gap: 10px;
-        z-index: 9999;
+        z-index: 999;
       }
-
-      .action-buttons button {
-        padding: 10px 20px;
-        font-size: 14px;
-        background-color: #1976d2;
-        color: white;
+      button {
+        padding: 10px;
         border: none;
-        border-radius: 6px;
+        border-radius: 5px;
+        background-color: #007bff;
+        color: white;
+        font-size: 14px;
         cursor: pointer;
       }
-
-      .action-buttons button:hover {
-        background-color: #125ea5;
+      button:hover {
+        background-color: #0056b3;
       }
     </style>
-
-    <script>
-      // Redimensionamento por pinça
-      AFRAME.registerComponent('scale-on-pinch', {
-        schema: { default: 1 },
-
-        init: function () {
-          const el = this.el;
-          this.initialScale = el.object3D.scale.clone();
-
-          el.addEventListener('pinchstart', (e) => {
-            this.startScale = el.object3D.scale.clone();
-          });
-
-          el.addEventListener('pinchmove', (e) => {
-            const scaleFactor = e.detail.scale;
-            el.object3D.scale.set(
-              this.startScale.x * scaleFactor,
-              this.startScale.y * scaleFactor,
-              this.startScale.z * scaleFactor
-            );
-          });
-        }
-      });
-
-      // Componente de animação por comando
-      AFRAME.registerComponent('play-on-command', {
-        init: function () {
-          const model = this.el;
-          model.addEventListener('model-loaded', () => {
-            model.setAttribute('animation-mixer', { clip: 'Idle', loop: 'repeat' });
-          });
-
-          window.addEventListener('command', (event) => {
-            const action = event.detail.action;
-            model.setAttribute('animation-mixer', { clip: action, loop: 'repeat' });
-          });
-        }
-      });
-
-      // Movimento por arrastar
-      AFRAME.registerComponent('drag-rotate-position', {
-        schema: {
-          enabled: { default: true },
-        },
-        init: function () {
-          this.isDragging = false;
-          this.previousPosition = null;
-        },
-        play: function () {
-          this.addEventListeners();
-        },
-        pause: function () {
-          this.removeEventListeners();
-        },
-        addEventListeners: function () {
-          this.el.sceneEl.canvas.addEventListener('touchstart', this.onTouchStart.bind(this), false);
-          this.el.sceneEl.canvas.addEventListener('touchmove', this.onTouchMove.bind(this), false);
-          this.el.sceneEl.canvas.addEventListener('touchend', this.onTouchEnd.bind(this), false);
-        },
-        removeEventListeners: function () {
-          this.el.sceneEl.canvas.removeEventListener('touchstart', this.onTouchStart.bind(this));
-          this.el.sceneEl.canvas.removeEventListener('touchmove', this.onTouchMove.bind(this));
-          this.el.sceneEl.canvas.removeEventListener('touchend', this.onTouchEnd.bind(this));
-        },
-        onTouchStart: function (event) {
-          if (event.touches.length === 1) {
-            this.isDragging = true;
-            this.previousPosition = event.touches[0];
-          }
-        },
-        onTouchMove: function (event) {
-          if (!this.isDragging || event.touches.length !== 1) return;
-
-          const deltaX = event.touches[0].clientX - this.previousPosition.clientX;
-          const deltaZ = event.touches[0].clientY - this.previousPosition.clientY;
-
-          const position = this.el.object3D.position;
-          position.x += deltaX * 0.005;
-          position.z += deltaZ * 0.005;
-
-          this.previousPosition = event.touches[0];
-        },
-        onTouchEnd: function () {
-          this.isDragging = false;
-        }
-      });
-
-      // Envio de comando de animação
-      function sendCommand(action) {
-        const event = new CustomEvent('command', {
-          detail: { action: action }
-        });
-        window.dispatchEvent(event);
-      }
-    </script>
   </head>
 
-  <body style="margin: 0; overflow: hidden;">
-    <div class="action-buttons">
-      <button onclick="sendCommand('Capoeira')">Lutar</button>
-      <button onclick="sendCommand('Chute')">Chutar</button>
+  <body>
+    <div id="buttons">
+      <button onclick="startAR()">Ativar AR</button>
+      <button onclick="startVoice()">Falar</button>
     </div>
 
     <a-scene
       id="scene"
-      embedded
-      arjs="sourceType: webcam;"
-      renderer="antialias: true"
-      xr-mode-ui="enabled: false"
       vr-mode-ui="enabled: false"
-      gesture-detector
+      arjs="sourceType: webcam; debugUIEnabled: false;"
+      embedded
+      renderer="logarithmicDepthBuffer: true;"
     >
       <a-assets>
         <a-asset-item id="model" src="kioto.glb"></a-asset-item>
       </a-assets>
 
       <a-entity
-        id="kioto"
+        id="glb"
         gltf-model="#model"
-        position="0 0 0"
-        scale="0.3 0.3 0.3"
+        position="0 0 -2"
+        scale="1 1 1"
+        rotation="0 0 0"
         gesture-detector
-        play-on-command
-        scale-on-pinch
-        drag-rotate-position
+        gesture-handler
+        animation-mixer
       ></a-entity>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-light type="ambient" intensity="1"></a-light>
+      <a-light type="directional" position="0 1 1" intensity="0.6"></a-light>
+
+      <a-plane id="ground" rotation="-90 0 0" width="10" height="10" color="#ccc"></a-plane>
+      <a-sky id="sky" color="#ECECEC"></a-sky>
     </a-scene>
+
+    <script>
+      const scene = document.querySelector("a-scene");
+      const model = document.getElementById("glb");
+
+      let isARMode = false;
+
+      scene.addEventListener("enter-vr", function () {
+        if (this.is("ar-mode")) {
+          isARMode = true;
+          ground.setAttribute("visible", "false");
+          sky.setAttribute("visible", "false");
+        }
+      });
+
+      scene.addEventListener("exit-vr", function () {
+        isARMode = false;
+        ground.setAttribute("visible", "true");
+        sky.setAttribute("visible", "true");
+      });
+
+      function startAR() {
+        scene.enterVR();
+      }
+
+      function startVoice() {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = "pt-BR";
+        recognition.start();
+
+        recognition.onresult = (event) => {
+          const command = event.results[0][0].transcript.toLowerCase();
+          console.log("Comando reconhecido:", command);
+
+          if (command.includes("olá") || command.includes("oi")) {
+            model.setAttribute("animation-mixer", { clip: "Aceno", loop: "once" });
+          } else if (command.includes("dança") || command.includes("dancar")) {
+            model.setAttribute("animation-mixer", { clip: "Dança", loop: "repeat" });
+          } else if (command.includes("luta") || command.includes("capoeira")) {
+            model.setAttribute("animation-mixer", { clip: "Capoeira", loop: "repeat" });
+          } else if (command.includes("chute")) {
+            model.setAttribute("animation-mixer", { clip: "Chute", loop: "once" });
+          } else {
+            console.log("Comando não reconhecido.");
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Erro no reconhecimento de voz:", event.error);
+        };
+      }
+
+      AFRAME.registerComponent("gesture-handler", {
+        init: function () {
+          this.scaleFactor = 1;
+          this.initialDistance = null;
+
+          this.el.sceneEl.addEventListener("onefingermove", (event) => {
+            if (!isARMode) return;
+            const position = this.el.getAttribute("position");
+            this.el.setAttribute("position", {
+              x: position.x + event.detail.positionChange.x * 0.02,
+              y: position.y,
+              z: position.z - event.detail.positionChange.y * 0.02,
+            });
+          });
+
+          this.el.sceneEl.addEventListener("twofingermove", (event) => {
+            if (!isARMode) return;
+            if (this.initialDistance === null) {
+              this.initialDistance = event.detail.spread;
+              return;
+            }
+
+            const scaleChange = event.detail.spread / this.initialDistance;
+            this.scaleFactor *= scaleChange;
+            this.el.setAttribute("scale", {
+              x: this.scaleFactor,
+              y: this.scaleFactor,
+              z: this.scaleFactor,
+            });
+            this.initialDistance = event.detail.spread;
+          });
+
+          this.el.sceneEl.addEventListener("touchend", () => {
+            this.initialDistance = null;
+          });
+        },
+      });
+    </script>
   </body>
 </html>
