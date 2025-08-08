@@ -8,9 +8,9 @@
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
-  
+
   <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
-  
+
   <style>
     body {
       margin: 0;
@@ -119,10 +119,10 @@
 
     <a-sphere id="ball"
       position="0 1 -1"
-      radius="0.2"
+      radius="0.08"
       color="#FFC107"
       dynamic-body="shape: sphere; mass: 1; linearDamping: 0.5; angularDamping: 0.5; restitution: 0.8;"
-      gesture-detector
+      drag-and-throw
       collision-filter="group: ball; mask: default, ground, wall;">
     </a-sphere>
 
@@ -135,13 +135,13 @@
       collision-filter="group: ground;">
     </a-plane>
 
-    <a-box position="0 0 -10" rotation="0 0 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
-    <a-box position="0 0 2" rotation="0 0 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
-    <a-box position="10 0 -4" rotation="0 90 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
-    <a-box position="-10 0 -4" rotation="0 90 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+    <a-box id="wallBack" position="0 0 -10" rotation="0 0 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+    <a-box id="wallFront" position="0 0 2" rotation="0 0 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+    <a-box id="wallRight" position="10 0 -4" rotation="0 90 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+    <a-box id="wallLeft" position="-10 0 -4" rotation="0 90 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
 
     <a-sky id="sky" color="#ECECEC"></a-sky>
-    
+
     <a-entity camera position="0 1.6 0" look-controls="enabled: true">
       <a-cursor></a-cursor>
     </a-entity>
@@ -156,6 +156,12 @@
     const ground = document.getElementById('ground');
     const sky = document.getElementById('sky');
     const ball = document.getElementById('ball');
+    const walls = [
+      document.getElementById('wallBack'),
+      document.getElementById('wallFront'),
+      document.getElementById('wallRight'),
+      document.getElementById('wallLeft')
+    ];
 
     logoutButton.addEventListener('click', () => {
       auth.signOut().then(() => window.location.href = "login.html");
@@ -167,11 +173,13 @@
       }
     });
 
+    // Controla a visibilidade dos objetos com base no modo AR
     scene.addEventListener('enter-vr', function () {
-      if (this.is('ar-mode')) {
-        ground.setAttribute('visible', 'false');
-        sky.setAttribute('visible', 'false');
-      }
+      const isAR = this.is('ar-mode');
+      ground.setAttribute('visible', !isAR);
+      sky.setAttribute('visible', !isAR);
+      ball.setAttribute('visible', !isAR);
+      walls.forEach(wall => wall.setAttribute('visible', !isAR));
     });
 
     // COMPONENTE PARA ARRASTAR E SOLTAR A BOLINHA
@@ -186,20 +194,20 @@
       },
 
       startDrag: function (evt) {
+        if (!this.el.getAttribute('visible')) return; // Impede o arrastar se a bolinha estiver invisível
         this.isDragging = true;
-        this.el.body.type = 'kinematic'; // Tipo de corpo para poder arrastar
+        this.el.body.type = 'kinematic';
         this.lastPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
       },
 
       endDrag: function (evt) {
         if (!this.isDragging) return;
         this.isDragging = false;
-        this.el.body.type = 'dynamic'; // Volta a ser dinâmico para a física funcionar
-        
-        // Aplica a velocidade calculada para o "arremesso"
+        this.el.body.type = 'dynamic';
+
         if (this.velocity.length() > 0) {
           const impulse = new CANNON.Vec3(
-            this.velocity.x * 20, // Multiplicador para dar mais força
+            this.velocity.x * 20,
             this.velocity.y * 20,
             this.velocity.z * 20
           );
@@ -209,19 +217,31 @@
 
       onMove: function (evt) {
         if (!this.isDragging) return;
-        const currentPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
-        
-        // Calcula a velocidade com base na mudança de posição
-        const timeDelta = evt.detail.delta;
-        if (timeDelta > 0) {
-          this.velocity.copy(currentPosition).sub(this.lastPosition).divideScalar(timeDelta / 1000);
+        const worldPos = new THREE.Vector3();
+        const camera = scene.camera;
+        const mouseX = (evt.clientX / window.innerWidth) * 2 - 1;
+        const mouseY = -(evt.clientY / window.innerHeight) * 2 + 1;
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
+
+        // A bolinha se moverá no plano do chão (ground)
+        const intersection = raycaster.intersectObjects([ground.object3D], true)[0];
+        if (intersection) {
+          // Posiciona a bolinha um pouco acima do ponto de interseção
+          const newPos = new THREE.Vector3().copy(intersection.point).add(new THREE.Vector3(0, this.el.getAttribute('radius'), 0));
+          this.el.object3D.position.copy(newPos);
+
+          const currentPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
+          const timeDelta = evt.detail.deltaTime;
+          if (timeDelta > 0) {
+            this.velocity.copy(currentPosition).sub(this.lastPosition).divideScalar(timeDelta / 1000);
+          }
+          this.lastPosition.copy(currentPosition);
         }
-        
-        this.lastPosition.copy(currentPosition);
-      },
+      }
     });
 
-    // ROTACIONAR MODELO COM DEDO (código original)
+    // ROTACIONAR MODELO COM DEDO
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
         this.el.sceneEl.addEventListener('onefingermove', (event) => {
@@ -233,12 +253,6 @@
           });
         });
       }
-    });
-
-    // ADICIONE AQUI O NOVO COMPONENTE À BOLINHA
-    document.addEventListener('DOMContentLoaded', () => {
-      const ball = document.getElementById('ball');
-      ball.setAttribute('drag-and-throw', '');
     });
 
     // ÁUDIO (código original)
