@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
     <title>Kioto Pet AR</title>
@@ -14,33 +14,197 @@
         display: block;
       }
 
-      #botoes {
+      #ui {
         position: absolute;
         bottom: 20px;
         width: 100%;
         display: flex;
         justify-content: center;
-        gap: 10px;
+        gap: 15px;
         z-index: 10;
       }
 
-      .botao {
-        padding: 10px 18px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.8);
+      button {
+        padding: 12px 16px;
+        font-size: 14px;
         border: none;
-        font-size: 16px;
-        font-weight: bold;
+        border-radius: 10px;
+        background-color: #fff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #eee;
       }
     </style>
   </head>
-
   <body>
-    <div id="botoes">
-      <button class="botao" id="btnFalar">Falar</button>
-      <button class="botao" id="btnAR">Ativar AR</button>
+    <div id="ui">
+      <button id="micButton">🎤 Falar</button>
+      <button id="arButton">📱 Ativar AR</button>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script type="module">
+      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
+      import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/loaders/GLTFLoader.js';
+      import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/controls/OrbitControls.js';
+      import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/webxr/ARButton.js';
+
+      let camera, scene, renderer;
+      let model, mixer, clock;
+      let currentAnimation = null;
+      let reticle;
+      let controller;
+      let isAR = false;
+      let selected = false;
+
+      const audioMap = {
+        'olá': 'ola.mp3',
+        'bom dia': 'bomdia.mp3',
+        'boa tarde': 'boatarde.mp3',
+        'boa noite': 'boanoite.mp3',
+        'qual seu nome': 'nome.mp3',
+        'quer ser meu amigo': 'amigo.mp3',
+        'musica': 'danca.mp3'
+      };
+
+      init();
+
+      function init() {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+        light.position.set(0.5, 1, 0.25);
+        scene.add(light);
+
+        const loader = new GLTFLoader();
+        loader.load('kioto.glb', function (gltf) {
+          model = gltf.scene;
+          model.scale.set(1, 1, 1);
+          model.position.set(0, 0, -1);
+          scene.add(model);
+
+          mixer = new THREE.AnimationMixer(model);
+          gltf.animations.forEach((clip) => {
+            if (clip.name.toLowerCase().includes('idle') || clip) {
+              currentAnimation = mixer.clipAction(clip);
+              currentAnimation.play();
+            }
+          });
+        });
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 1, 0);
+        controls.update();
+
+        // AR Button
+        const arButton = ARButton.createButton(renderer, {
+          requiredFeatures: ['hit-test'],
+        });
+        document.getElementById('arButton').addEventListener('click', () => {
+          document.body.appendChild(arButton);
+          arButton.click();
+        });
+
+        // AR Stuff
+        reticle = new THREE.Mesh(
+          new THREE.RingGeometry(0.1, 0.15, 32).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+        );
+        reticle.matrixAutoUpdate = false;
+        reticle.visible = false;
+        scene.add(reticle);
+
+        controller = renderer.xr.getController(0);
+        controller.addEventListener('select', onSelect);
+        scene.add(controller);
+
+        renderer.setAnimationLoop(render);
+
+        window.addEventListener('resize', onWindowResize);
+        setupSpeechRecognition();
+      }
+
+      function onSelect() {
+        if (reticle.visible && model) {
+          model.position.setFromMatrixPosition(reticle.matrix);
+        }
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function render(timestamp, frame) {
+        if (mixer) mixer.update(clock.getDelta());
+
+        if (isAR && frame) {
+          const referenceSpace = renderer.xr.getReferenceSpace();
+          const session = renderer.xr.getSession();
+
+          const viewerPose = frame.getViewerPose(referenceSpace);
+          if (viewerPose) {
+            const view = viewerPose.views[0];
+            const hitTestResults = frame.getHitTestResultsForTransientInput
+              ? frame.getHitTestResultsForTransientInput({ profile: 'generic-touchscreen' })
+              : frame.getHitTestResults(frame.getHitTestSource?.());
+
+            if (hitTestResults?.length) {
+              const hit = hitTestResults[0];
+              const hitPose = hit.getPose(referenceSpace);
+              reticle.visible = true;
+              reticle.matrix.fromArray(hitPose.transform.matrix);
+            } else {
+              reticle.visible = false;
+            }
+          }
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      // 🎤 Reconhecimento de Voz
+      function setupSpeechRecognition() {
+        const micButton = document.getElementById('micButton');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+          alert('Seu navegador não suporta reconhecimento de voz.');
+          return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.continuous = false;
+
+        micButton.addEventListener('click', () => {
+          recognition.start();
+        });
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript.toLowerCase().trim();
+          console.log('Comando:', transcript);
+
+          if (transcript === 'dançar') {
+            currentAnimation?.play();
+          } else if (transcript === 'parar') {
+            currentAnimation?.stop();
+          } else if (audioMap[transcript]) {
+            const audio = new Audio(audioMap[transcript]);
+            audio.play();
+          }
+        };
+      }
+    </script>
   </body>
 </html>
