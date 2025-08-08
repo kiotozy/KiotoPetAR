@@ -1,0 +1,12 @@
+{
+  "name": "kioto-pet-ar-functions",
+  "version": "1.0.0",
+  "description": "Netlify functions for the Kioto Pet AR project",
+  "main": "pergunte-kioto.js",
+  "scripts": {
+    "start": "netlify functions:serve"
+  },
+  "dependencies": {
+    "openai": "^4.20.1"
+  }
+}
