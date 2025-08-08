@@ -4,9 +4,13 @@
   <meta charset="utf-8">
   <title>Kioto Pet AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- A-Frame e plugins -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+
+  <!-- Estilo -->
   <style>
     body {
       margin: 0;
@@ -55,6 +59,10 @@
       height: 100%;
       z-index: 1;
     }
+    /* Esconde os botões padrão AR/VR */
+    .a-enter-vr-button {
+      display: none !important;
+    }
   </style>
 
   <!-- Firebase -->
@@ -72,22 +80,26 @@
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-
     auth.onAuthStateChanged(user => {
       if (!user) window.location.href = "login.html";
     });
   </script>
 </head>
 <body>
+  <!-- Botões personalizados -->
   <div id="buttons">
     <button id="micButton">🎤 Falar</button>
     <button id="arButton">Ativar AR</button>
   </div>
   <button id="logoutButton">Sair</button>
 
-  <a-scene id="scene" embedded xr-mode-ui="enabled: false" gesture-detector renderer="antialias: true">
+  <!-- CENA A-FRAME -->
+  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" gesture-detector>
     <a-assets>
+      <!-- Modelo 3D -->
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+
+      <!-- Áudios -->
       <audio id="bom_dia" src="bom_dia.mp3" preload="auto"></audio>
       <audio id="boa_tarde" src="boa_tarde.mp3" preload="auto"></audio>
       <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
@@ -104,10 +116,10 @@
       id="glb"
       gltf-model="#model"
       position="0 0 -2"
-      rotation="0 0 0"
       scale="1 1 1"
-      animation-mixer
-      gesture-detector>
+      rotation="0 0 0"
+      gesture-detector
+      animation-mixer>
     </a-entity>
 
     <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
@@ -115,14 +127,15 @@
     <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
   </a-scene>
 
+  <!-- Scripts -->
   <script>
     const modelEntity = document.getElementById('glb');
     const arButton = document.getElementById('arButton');
+    const micButton = document.getElementById('micButton');
+    const logoutButton = document.getElementById('logoutButton');
     const scene = document.querySelector('a-scene');
     const ground = document.getElementById('ground');
     const sky = document.getElementById('sky');
-    const micButton = document.getElementById('micButton');
-    const logoutButton = document.getElementById('logoutButton');
 
     logoutButton.addEventListener('click', () => {
       auth.signOut().then(() => window.location.href = "login.html");
@@ -130,7 +143,7 @@
 
     arButton.addEventListener('click', () => {
       if (scene.enterAR) {
-        scene.enterAR().catch(() => alert("Seu dispositivo ou navegador não suporta AR."));
+        scene.enterAR().catch(() => alert("Seu dispositivo não suporta AR ou permissão não foi concedida."));
       }
     });
 
@@ -141,7 +154,7 @@
       }
     });
 
-    // GESTURE: ROTATE
+    // ROTACIONAR MODELO COM DEDO
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
         this.el.sceneEl.addEventListener('onefingermove', (event) => {
@@ -155,7 +168,7 @@
       }
     });
 
-    // AUDIO
+    // ÁUDIO
     let isSpeaking = false;
     let currentAudio = null;
 
@@ -180,7 +193,7 @@
     let currentAnimation = null;
 
     function setAnimation(clipName) {
-      if (currentAnimation === clipName) return; // evita reinício
+      if (currentAnimation === clipName) return;
       modelEntity.setAttribute('animation-mixer', `clip: ${clipName}`);
       currentAnimation = clipName;
     }
@@ -236,8 +249,8 @@
     // RECONHECIMENTO DE VOZ
     let recognition;
     let isListening = false;
-
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
     if (SpeechRecognition) {
       recognition = new SpeechRecognition();
       recognition.lang = 'pt-BR';
