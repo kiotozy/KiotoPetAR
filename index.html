@@ -5,12 +5,12 @@
   <title>Kioto Pet AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-  <!-- A-Frame e plugins -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
-
-  <!-- Estilo -->
+  
+  <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
+  
   <style>
     body {
       margin: 0;
@@ -64,7 +64,6 @@
     }
   </style>
 
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script>
@@ -85,20 +84,16 @@
   </script>
 </head>
 <body>
-  <!-- Botões personalizados -->
   <div id="buttons">
     <button id="micButton">🎤 Falar</button>
     <button id="arButton">Ativar AR</button>
   </div>
   <button id="logoutButton">Sair</button>
 
-  <!-- CENA A-FRAME -->
-  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" gesture-detector>
+  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" gesture-detector physics="debug: false;">
     <a-assets>
-      <!-- Modelo 3D -->
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
 
-      <!-- Áudios -->
       <audio id="bom_dia" src="bom_dia.mp3" preload="auto"></audio>
       <audio id="boa_tarde" src="boa_tarde.mp3" preload="auto"></audio>
       <audio id="boa_noite" src="boa_noite.mp3" preload="auto"></audio>
@@ -122,12 +117,36 @@
       gesture-detector>
     </a-entity>
 
-    <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+    <a-sphere id="ball"
+      position="0 1 -1"
+      radius="0.2"
+      color="#FFC107"
+      dynamic-body="shape: sphere; mass: 1; linearDamping: 0.5; angularDamping: 0.5; restitution: 0.8;"
+      gesture-detector
+      collision-filter="group: ball; mask: default, ground, wall;">
+    </a-sphere>
+
+    <a-plane id="ground"
+      position="0 -0.1 -4"
+      rotation="-90 0 0"
+      width="100" height="100"
+      color="#7BC8A4"
+      static-body="shape: box; mass: 0; restitution: 0.8;"
+      collision-filter="group: ground;">
+    </a-plane>
+
+    <a-box position="0 0 -10" rotation="0 0 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+    <a-box position="0 0 2" rotation="0 0 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+    <a-box position="10 0 -4" rotation="0 90 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+    <a-box position="-10 0 -4" rotation="0 90 0" width="20" height="10" depth="0.5" color="transparent" static-body="restitution: 0.8;" collision-filter="group: wall;"></a-box>
+
     <a-sky id="sky" color="#ECECEC"></a-sky>
-    <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
+    
+    <a-entity camera position="0 1.6 0" look-controls="enabled: true">
+      <a-cursor></a-cursor>
+    </a-entity>
   </a-scene>
 
-  <!-- Scripts -->
   <script>
     const modelEntity = document.getElementById('glb');
     const arButton = document.getElementById('arButton');
@@ -136,6 +155,7 @@
     const scene = document.querySelector('a-scene');
     const ground = document.getElementById('ground');
     const sky = document.getElementById('sky');
+    const ball = document.getElementById('ball');
 
     logoutButton.addEventListener('click', () => {
       auth.signOut().then(() => window.location.href = "login.html");
@@ -154,7 +174,54 @@
       }
     });
 
-    // ROTACIONAR MODELO COM DEDO
+    // COMPONENTE PARA ARRASTAR E SOLTAR A BOLINHA
+    AFRAME.registerComponent('drag-and-throw', {
+      init: function () {
+        this.isDragging = false;
+        this.lastPosition = null;
+        this.velocity = new AFRAME.THREE.Vector3();
+        this.el.addEventListener('mousedown', this.startDrag.bind(this));
+        this.el.addEventListener('mouseup', this.endDrag.bind(this));
+        this.el.sceneEl.addEventListener('mousemove', this.onMove.bind(this));
+      },
+
+      startDrag: function (evt) {
+        this.isDragging = true;
+        this.el.body.type = 'kinematic'; // Tipo de corpo para poder arrastar
+        this.lastPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
+      },
+
+      endDrag: function (evt) {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        this.el.body.type = 'dynamic'; // Volta a ser dinâmico para a física funcionar
+        
+        // Aplica a velocidade calculada para o "arremesso"
+        if (this.velocity.length() > 0) {
+          const impulse = new CANNON.Vec3(
+            this.velocity.x * 20, // Multiplicador para dar mais força
+            this.velocity.y * 20,
+            this.velocity.z * 20
+          );
+          this.el.body.applyImpulse(impulse, new CANNON.Vec3(0, 0, 0));
+        }
+      },
+
+      onMove: function (evt) {
+        if (!this.isDragging) return;
+        const currentPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
+        
+        // Calcula a velocidade com base na mudança de posição
+        const timeDelta = evt.detail.delta;
+        if (timeDelta > 0) {
+          this.velocity.copy(currentPosition).sub(this.lastPosition).divideScalar(timeDelta / 1000);
+        }
+        
+        this.lastPosition.copy(currentPosition);
+      },
+    });
+
+    // ROTACIONAR MODELO COM DEDO (código original)
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
         this.el.sceneEl.addEventListener('onefingermove', (event) => {
@@ -168,7 +235,13 @@
       }
     });
 
-    // ÁUDIO
+    // ADICIONE AQUI O NOVO COMPONENTE À BOLINHA
+    document.addEventListener('DOMContentLoaded', () => {
+      const ball = document.getElementById('ball');
+      ball.setAttribute('drag-and-throw', '');
+    });
+
+    // ÁUDIO (código original)
     let isSpeaking = false;
     let currentAudio = null;
 
@@ -189,7 +262,7 @@
       }
     }
 
-    // ANIMAÇÕES
+    // ANIMAÇÕES (código original)
     let currentAnimation = null;
 
     function setAnimation(clipName) {
@@ -198,7 +271,7 @@
       currentAnimation = clipName;
     }
 
-    // COMANDOS DE VOZ
+    // COMANDOS DE VOZ (código original)
     const comandosAudio = new Map([
       ["bom dia", "bom_dia"],
       ["boa tarde", "boa_tarde"],
@@ -247,7 +320,7 @@
       playAudio("nao_entendi");
     }
 
-    // RECONHECIMENTO DE VOZ
+    // RECONHECIMENTO DE VOZ (código original)
     let recognition;
     let isListening = false;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
