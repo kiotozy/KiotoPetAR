@@ -21,7 +21,19 @@ exports.handler = async (event, context) => {
             }],
         });
 
-        const aiResponseText = chatCompletion.choices[0].message.content;
+        let aiResponseText = chatCompletion.choices[0].message.content;
+
+        // **VERIFICAÇÃO DE MODERAÇÃO DA RESPOSTA DA IA**
+        const moderation = await openai.moderations.create({
+            input: aiResponseText,
+        });
+
+        const moderationResult = moderation.results[0];
+
+        if (moderationResult.flagged) {
+            console.warn("A resposta da IA foi sinalizada como insegura:", moderationResult);
+            aiResponseText = "Não posso falar sobre isso. Vamos tentar outra coisa!";
+        }
 
         // 2. Geração de áudio a partir do texto (Text-to-Speech da OpenAI)
         const mp3 = await openai.audio.speech.create({
@@ -31,7 +43,7 @@ exports.handler = async (event, context) => {
         });
 
         const audioBuffer = Buffer.from(await mp3.arrayBuffer());
-
+        
         return {
             statusCode: 200,
             headers: {
@@ -48,5 +60,5 @@ exports.handler = async (event, context) => {
             statusCode: 500,
             body: JSON.stringify({ error: 'Erro ao gerar resposta.' })
         };
-    }
+    };
 };
