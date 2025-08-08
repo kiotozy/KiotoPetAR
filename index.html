@@ -3,10 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <title>Kioto AR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    
+    <!-- A-Frame & extras -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://unpkg.com/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.8.0/dist/aframe-ar.min.js"></script>
 
     <style>
@@ -41,7 +43,7 @@
     </style>
 
     <script>
-      // Componente para redimensionar com gesto de pinça
+      // Redimensionamento por pinça
       AFRAME.registerComponent('scale-on-pinch', {
         schema: { default: 1 },
 
@@ -64,11 +66,10 @@
         }
       });
 
+      // Componente de animação por comando
       AFRAME.registerComponent('play-on-command', {
         init: function () {
           const model = this.el;
-          const sceneEl = document.querySelector('a-scene');
-
           model.addEventListener('model-loaded', () => {
             model.setAttribute('animation-mixer', { clip: 'Idle', loop: 'repeat' });
           });
@@ -80,6 +81,55 @@
         }
       });
 
+      // Movimento por arrastar
+      AFRAME.registerComponent('drag-rotate-position', {
+        schema: {
+          enabled: { default: true },
+        },
+        init: function () {
+          this.isDragging = false;
+          this.previousPosition = null;
+        },
+        play: function () {
+          this.addEventListeners();
+        },
+        pause: function () {
+          this.removeEventListeners();
+        },
+        addEventListeners: function () {
+          this.el.sceneEl.canvas.addEventListener('touchstart', this.onTouchStart.bind(this), false);
+          this.el.sceneEl.canvas.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+          this.el.sceneEl.canvas.addEventListener('touchend', this.onTouchEnd.bind(this), false);
+        },
+        removeEventListeners: function () {
+          this.el.sceneEl.canvas.removeEventListener('touchstart', this.onTouchStart.bind(this));
+          this.el.sceneEl.canvas.removeEventListener('touchmove', this.onTouchMove.bind(this));
+          this.el.sceneEl.canvas.removeEventListener('touchend', this.onTouchEnd.bind(this));
+        },
+        onTouchStart: function (event) {
+          if (event.touches.length === 1) {
+            this.isDragging = true;
+            this.previousPosition = event.touches[0];
+          }
+        },
+        onTouchMove: function (event) {
+          if (!this.isDragging || event.touches.length !== 1) return;
+
+          const deltaX = event.touches[0].clientX - this.previousPosition.clientX;
+          const deltaZ = event.touches[0].clientY - this.previousPosition.clientY;
+
+          const position = this.el.object3D.position;
+          position.x += deltaX * 0.005;
+          position.z += deltaZ * 0.005;
+
+          this.previousPosition = event.touches[0];
+        },
+        onTouchEnd: function () {
+          this.isDragging = false;
+        }
+      });
+
+      // Envio de comando de animação
       function sendCommand(action) {
         const event = new CustomEvent('command', {
           detail: { action: action }
@@ -113,9 +163,10 @@
         gltf-model="#model"
         position="0 0 0"
         scale="0.3 0.3 0.3"
+        gesture-detector
         play-on-command
         scale-on-pinch
-        gesture-detector
+        drag-rotate-position
       ></a-entity>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
