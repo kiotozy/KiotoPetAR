@@ -90,7 +90,7 @@
   </div>
   <button id="logoutButton">Sair</button>
 
-  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" gesture-detector physics="debug: false;">
+  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" physics="debug: false;">
     <a-assets>
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
 
@@ -118,7 +118,7 @@
     </a-entity>
 
     <a-sphere id="ball"
-      position="0 1 -1"
+      position="1 1 -3"
       radius="0.08"
       color="#FFC107"
       dynamic-body="shape: sphere; mass: 1; linearDamping: 0.5; angularDamping: 0.5; restitution: 0.8;"
@@ -182,22 +182,25 @@
       walls.forEach(wall => wall.setAttribute('visible', !isAR));
     });
 
-    // COMPONENTE PARA ARRASTAR E SOLTAR A BOLINHA
+    // NOVO COMPONENTE PARA ARRASTAR E SOLTAR A BOLINHA
+    // Ajustado para interação com toque em dispositivos móveis
     AFRAME.registerComponent('drag-and-throw', {
       init: function () {
         this.isDragging = false;
         this.lastPosition = null;
+        this.lastTime = performance.now();
         this.velocity = new AFRAME.THREE.Vector3();
-        this.el.addEventListener('mousedown', this.startDrag.bind(this));
-        this.el.addEventListener('mouseup', this.endDrag.bind(this));
-        this.el.sceneEl.addEventListener('mousemove', this.onMove.bind(this));
+        this.el.addEventListener('touchstart', this.startDrag.bind(this));
+        this.el.addEventListener('touchend', this.endDrag.bind(this));
+        window.addEventListener('touchmove', this.onMove.bind(this));
       },
 
       startDrag: function (evt) {
-        if (!this.el.getAttribute('visible')) return; // Impede o arrastar se a bolinha estiver invisível
+        if (!this.el.getAttribute('visible')) return;
         this.isDragging = true;
         this.el.body.type = 'kinematic';
         this.lastPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
+        this.lastTime = performance.now();
       },
 
       endDrag: function (evt) {
@@ -216,27 +219,28 @@
       },
 
       onMove: function (evt) {
-        if (!this.isDragging) return;
+        if (!this.isDragging || !evt.touches || evt.touches.length === 0) return;
+
+        const touch = evt.touches[0];
         const worldPos = new THREE.Vector3();
         const camera = scene.camera;
-        const mouseX = (evt.clientX / window.innerWidth) * 2 - 1;
-        const mouseY = -(evt.clientY / window.innerHeight) * 2 + 1;
+        const mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
+        const mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
 
-        // A bolinha se moverá no plano do chão (ground)
         const intersection = raycaster.intersectObjects([ground.object3D], true)[0];
         if (intersection) {
-          // Posiciona a bolinha um pouco acima do ponto de interseção
           const newPos = new THREE.Vector3().copy(intersection.point).add(new THREE.Vector3(0, this.el.getAttribute('radius'), 0));
           this.el.object3D.position.copy(newPos);
 
-          const currentPosition = new AFRAME.THREE.Vector3().copy(this.el.object3D.position);
-          const timeDelta = evt.detail.deltaTime;
+          const currentTime = performance.now();
+          const timeDelta = currentTime - this.lastTime;
           if (timeDelta > 0) {
-            this.velocity.copy(currentPosition).sub(this.lastPosition).divideScalar(timeDelta / 1000);
+            this.velocity.copy(newPos).sub(this.lastPosition).divideScalar(timeDelta / 1000);
           }
-          this.lastPosition.copy(currentPosition);
+          this.lastPosition.copy(newPos);
+          this.lastTime = currentTime;
         }
       }
     });
@@ -253,6 +257,14 @@
           });
         });
       }
+    });
+    
+    // Adicione esta parte para evitar o conflito com o a-cursor
+    scene.addEventListener('loaded', () => {
+        const ballCursor = document.querySelector('#ball a-cursor');
+        if(ballCursor) {
+            ballCursor.parentNode.removeChild(ballCursor);
+        }
     });
 
     // ÁUDIO (código original)
