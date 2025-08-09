@@ -1,129 +1,222 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
     <meta charset="utf-8">
-    <title>Kioto - Seu Pet de RA</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    
+    <title>Kioto Pet AR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
-        .intro-screen {
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+        #buttons {
             position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            z-index: 1000;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #micButton {
+            background-color: #03a9f4;
+        }
+        #micButton.listening {
+            background-color: green;
+        }
+        #arButton {
+            background-color: #03a9f4;
+        }
+        #logoutButton {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: #f44336;
+            z-index: 1001;
+        }
+        a-scene {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: #2c3e50;
-            color: white;
-            text-align: center;
-            z-index: 10000;
+            z-index: 1;
         }
-        .start-button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin-top: 20px;
-            cursor: pointer;
-            border-radius: 8px;
-        }
-        .ar-mode-container {
-            display: none; /* Escondido por padrão */
-        }
-        .mic-button {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            background-color: #f44336;
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 15px 30px;
-            font-size: 18px;
-            cursor: pointer;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.3s ease;
-        }
-        .mic-button:hover {
-            background-color: #d32f2f;
-        }
-        .mic-button.listening {
-            background-color: #4CAF50;
+        .a-enter-vr-button {
+            display: none !important;
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4p0lhme7RQf1pN0idXgnbUAdR7z_4m2A",
+            authDomain: "kiotopet.firebaseapp.com",
+            projectId: "kiotopet",
+            storageBucket: "kiotopet.firebasestorage.app",
+            messagingSenderId: "200099219198",
+            appId: "1:200099219198:web:38d37babfa5fc616fd07af",
+            measurementId: "G-W493XKCZFQ"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        auth.onAuthStateChanged(user => {
+            if (!user) window.location.href = "login.html";
+        });
+    </script>
 </head>
 <body>
-    <div id="introScreen" class="intro-screen">
-        <h1>Kioto Pet AR</h1>
-        <p>Um pet virtual que responde com inteligência artificial.</p>
-        <button id="startButton" class="start-button">Ativar AR</button>
+    <div id="buttons">
+        <button id="micButton">🎤 Falar</button>
+        <button id="arButton">Ativar AR</button>
     </div>
+    <button id="logoutButton">Sair</button>
 
-    <div id="arModeContainer" class="ar-mode-container">
-        <a-scene
-            embedded
-            arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-            vr-mode-ui="enabled: false">
+    <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" gesture-detector>
+        <a-assets>
+            <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+        </a-assets>
 
-            <a-assets>
-                <a-asset-item id="kioto-model" src="kioto.glb"></a-asset-item>
-            </a-assets>
+        <a-entity
+            id="glb"
+            gltf-model="#model"
+            position="0 0 -2"
+            scale="0.9 0.9 0.9"
+            rotation="0 0 0"
+            animation-mixer="clip: nomedaanimacao"
+            gesture-detector>
+        </a-entity>
 
-            <a-entity
-                gltf-model="#kioto-model"
-                position="0 0 -3"
-                scale="0.2 0.2 0.2"
-                animation-mixer="clip: action_wave"
-                id="kioto-entity">
-            </a-entity>
-
-            <a-entity camera></a-entity>
-        </a-scene>
-        <button id="micButton" class="mic-button">🎤 Falar</button>
-    </div>
+        <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+        <a-sky id="sky" color="#ECECEC"></a-sky>
+        <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
+    </a-scene>
 
     <script>
-        // Lógica para alternar entre as telas
-        const introScreen = document.getElementById('introScreen');
-        const arModeContainer = document.getElementById('arModeContainer');
-        const startButton = document.getElementById('startButton');
-        
-        startButton.addEventListener('click', () => {
-            introScreen.style.display = 'none';
-            arModeContainer.style.display = 'block';
+        const modelEntity = document.getElementById('glb');
+        const arButton = document.getElementById('arButton');
+        const micButton = document.getElementById('micButton');
+        const logoutButton = document.getElementById('logoutButton');
+        const scene = document.querySelector('a-scene');
+        const ground = document.getElementById('ground');
+        const sky = document.getElementById('sky');
+
+        logoutButton.addEventListener('click', () => {
+            auth.signOut().then(() => window.location.href = "login.html");
         });
 
-        // Lógica para as animações e áudio
-        let kiotoModel = document.getElementById('kioto-entity');
-        
-        function playAnimation(clipName) {
-            kiotoModel.setAttribute('animation-mixer', {
-                clip: clipName,
-                loop: 'once'
-            });
-            kiotoModel.addEventListener('animation-mixer-finished', () => {
-                kiotoModel.setAttribute('animation-mixer', { clip: '' });
-            }, { once: true });
+        arButton.addEventListener('click', () => {
+            if (scene.enterAR) {
+                scene.enterAR().catch(() => alert("Seu dispositivo não suporta AR ou permissão não foi concedida."));
+            }
+        });
+
+        scene.addEventListener('enter-vr', function () {
+            if (this.is('ar-mode')) {
+                ground.setAttribute('visible', 'false');
+                sky.setAttribute('visible', 'false');
+            }
+        });
+
+        // ROTACIONAR MODELO COM DEDO
+        AFRAME.registerComponent('gesture-detector', {
+            init: function () {
+                this.el.sceneEl.addEventListener('onefingermove', (event) => {
+                    const rotation = this.el.getAttribute('rotation');
+                    this.el.setAttribute('rotation', {
+                        x: rotation.x,
+                        y: rotation.y + event.detail.positionChange.x * 2,
+                        z: rotation.z
+                    });
+                });
+            }
+        });
+
+        // ÁUDIO e ANIMAÇÕES
+        let isSpeaking = false;
+        let currentAudio = null;
+        let currentAnimation = null;
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'pt-BR';
+                isSpeaking = true;
+                utterance.onend = () => {
+                    isSpeaking = false;
+                };
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.error("Seu navegador não suporta a API de fala.");
+            }
         }
 
-        let isSpeaking = false;
+        function setAnimation(clipName) {
+            if (currentAnimation === clipName) return;
+            modelEntity.setAttribute('animation-mixer', `clip: ${clipName}`);
+            currentAnimation = clipName;
+        }
 
-        // Configuração do reconhecimento de voz
-        const micButton = document.getElementById('micButton');
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        async function processCommand(comando) {
+            comando = comando.toLowerCase();
+
+            // Lógica para comandos de animação
+            if (comando.includes("parar")) {
+                modelEntity.removeAttribute("animation-mixer");
+                currentAnimation = null;
+                return;
+            }
+
+            if (comando.includes("dançar")) {
+                setAnimation("dance"); // Substitua 'dance' pelo nome correto da animação
+                return;
+            }
+
+            if (comando.includes("luta")) {
+                setAnimation("fight"); // Substitua 'fight' pelo nome correto da animação
+                return;
+            }
+
+            if (comando.includes("chute")) {
+                setAnimation("kick"); // Substitua 'kick' pelo nome correto da animação
+                return;
+            }
+
+            // Para todas as outras perguntas, chame a IA
+            try {
+                const response = await fetch('/.netlify/functions/ask-kioto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userText: comando }),
+                });
+                const data = await response.json();
+                speakText(data.aiResponse);
+            } catch (error) {
+                console.error("Erro na comunicação com a IA:", error);
+                speakText("Desculpe, não consigo me conectar com a inteligência artificial agora.");
+            }
+        }
+
+        // RECONHECIMENTO DE VOZ
         let recognition;
         let isListening = false;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
@@ -136,8 +229,15 @@
                     recognition.stop();
                 } else {
                     if (isSpeaking) {
-                        window.speechSynthesis.cancel();
-                        isSpeaking = false;
+                        if (currentAudio) {
+                            currentAudio.pause();
+                            currentAudio.currentTime = 0;
+                            isSpeaking = false;
+                            currentAudio = null;
+                        } else if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+                            window.speechSynthesis.cancel();
+                            isSpeaking = false;
+                        }
                     }
                     recognition.start();
                 }
@@ -155,66 +255,17 @@
                 micButton.textContent = "🎤 Falar";
             };
 
-            recognition.onresult = async (event) => {
-                const comando = event.results[0][0].transcript.toLowerCase();
+            recognition.onresult = (event) => {
+                const comando = event.results[0][0].transcript;
                 console.log("Comando de voz:", comando);
-                
-                // VERIFICA COMANDOS DE ANIMAÇÃO PRIMEIRO
-                if (comando.includes("dança")) {
-                    playAnimation("action_dance");
-                    speakText("Eu adoro dançar!");
-                    return;
-                }
-                
-                if (comando.includes("senta")) {
-                    playAnimation("action_sit");
-                    speakText("Ok, vou sentar!");
-                    return;
-                }
-
-                // Se não for um comando de animação, envia para a IA
-                try {
-                    const response = await fetch('/.netlify/functions/ask-kioto', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ userText: comando }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Erro: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    speakText(result.aiResponse);
-
-                } catch (error) {
-                    console.error("Erro ao se comunicar com a IA:", error);
-                    speakText("Desculpe, houve um erro ao tentar me comunicar com a inteligência artificial.");
-                }
+                processCommand(comando);
             };
 
-            const synth = window.speechSynthesis;
-            function speakText(text) {
-                if (synth.speaking) {
-                    synth.cancel();
-                }
-                const utterance = new SpeechSynthesisUtterance(text);
-                const voices = synth.getVoices();
-                const portugueseVoice = voices.find(voice => voice.lang === 'pt-BR');
-                if (portugueseVoice) {
-                    utterance.voice = portugueseVoice;
-                }
-                synth.speak(utterance);
-                utterance.onstart = () => {
-                    isSpeaking = true;
-                };
-                utterance.onend = () => {
-                    isSpeaking = false;
-                };
-            }
-
+            recognition.onerror = (event) => {
+                console.error("Erro no reconhecimento de voz:", event.error);
+                micButton.classList.remove("listening");
+                micButton.textContent = "🎤 Erro";
+            };
         } else {
             alert("Seu navegador não suporta reconhecimento de voz.");
         }
