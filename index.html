@@ -7,7 +7,38 @@
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        .intro-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            z-index: 10000;
+        }
+        .start-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .ar-mode-container {
+            display: none; /* Escondido por padrão */
+        }
         .mic-button {
             position: fixed;
             bottom: 20px;
@@ -33,31 +64,48 @@
     </style>
 </head>
 <body>
-    <a-scene
-        embedded
-        arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-        vr-mode-ui="enabled: false">
+    <div id="introScreen" class="intro-screen">
+        <h1>Kioto Pet AR</h1>
+        <p>Um pet virtual que responde com inteligência artificial.</p>
+        <button id="startButton" class="start-button">Ativar AR</button>
+    </div>
 
-        <a-assets>
-            <a-asset-item id="kioto-model" src="kioto.glb"></a-asset-item>
-        </a-assets>
+    <div id="arModeContainer" class="ar-mode-container">
+        <a-scene
+            embedded
+            arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+            vr-mode-ui="enabled: false">
 
-        <a-marker preset="hiro">
-            <a-entity
-                gltf-model="#kioto-model"
-                scale="0.2 0.2 0.2"
-                animation-mixer="clip: action_wave"
-                id="kioto-entity">
-            </a-entity>
-        </a-marker>
+            <a-assets>
+                <a-asset-item id="kioto-model" src="kioto.glb"></a-asset-item>
+            </a-assets>
 
-        <a-entity camera></a-entity>
-    </a-scene>
+            <a-marker preset="hiro">
+                <a-entity
+                    gltf-model="#kioto-model"
+                    scale="0.2 0.2 0.2"
+                    animation-mixer="clip: action_wave"
+                    id="kioto-entity">
+                </a-entity>
+            </a-marker>
 
-    <button id="micButton" class="mic-button">🎤 Falar</button>
+            <a-entity camera></a-entity>
+        </a-scene>
+        <button id="micButton" class="mic-button">🎤 Falar</button>
+    </div>
 
     <script>
-        // Lógica para as animações
+        // Lógica para alternar entre as telas
+        const introScreen = document.getElementById('introScreen');
+        const arModeContainer = document.getElementById('arModeContainer');
+        const startButton = document.getElementById('startButton');
+        
+        startButton.addEventListener('click', () => {
+            introScreen.style.display = 'none';
+            arModeContainer.style.display = 'block';
+        });
+
+        // Lógica para as animações e áudio
         let kiotoModel = document.getElementById('kioto-entity');
         
         function playAnimation(clipName) {
@@ -70,7 +118,6 @@
             }, { once: true });
         }
 
-        // Variáveis de controle para o áudio
         let currentAudio = null;
         let isSpeaking = false;
 
@@ -113,7 +160,6 @@
                 micButton.textContent = "🎤 Falar";
             };
 
-            // Lógica principal que decide entre animação e IA
             recognition.onresult = async (event) => {
                 const comando = event.results[0][0].transcript.toLowerCase();
                 console.log("Comando de voz:", comando);
@@ -122,13 +168,13 @@
                 if (comando.includes("dança")) {
                     playAnimation("action_dance");
                     speakText("Eu adoro dançar!");
-                    return; // Interrompe a execução para não ir para a IA
+                    return;
                 }
                 
                 if (comando.includes("senta")) {
                     playAnimation("action_sit");
                     speakText("Ok, vou sentar!");
-                    return; // Interrompe a execução para não ir para a IA
+                    return;
                 }
 
                 // Se não for um comando de animação, envia para a IA
@@ -156,7 +202,6 @@
                 }
             };
 
-            // Função para tocar o áudio da URL gerada
             function playAudioFromURL(url) {
                 if (currentAudio) {
                     currentAudio.pause();
@@ -174,7 +219,6 @@
                 };
             }
 
-            // Função de fallback para a API de Síntese de Voz do navegador
             const synth = window.speechSynthesis;
             function speakText(text) {
                 if (synth.speaking) {
