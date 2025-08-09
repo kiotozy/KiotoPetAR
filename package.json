@@ -1,12 +1,13 @@
 {
-  "name": "kioto-pet-ar-functions",
+  "name": "kioto-ar",
   "version": "1.0.0",
-  "description": "Netlify functions for the Kioto Pet AR project",
-  "main": "pergunte-kioto.js",
+  "description": "Kioto Pet AR",
   "scripts": {
-    "start": "netlify functions:serve"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "openai": "^4.20.1"
-  }
+    "@google/generative-ai": "^0.1.3"
+  },
+  "author": "",
+  "license": "ISC"
 }
