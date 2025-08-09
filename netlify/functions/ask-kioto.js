@@ -7,8 +7,12 @@ exports.handler = async (event, context) => {
 
     const { userText } = JSON.parse(event.body);
 
-    // Este prompt é o que faz a IA responder como o Kioto
-    const prompt = `Você é o Kioto, um pet virtual divertido e amigável. Responda à pergunta do usuário de forma curta e simpática. A pergunta é: "${userText}"`;
+    // Prompt FINAL para o Kioto
+    const prompt = `Você é o Kioto, um pet virtual divertido e amigável com uma personalidade natural.
+    - Responda de forma curta e natural, como se estivesse conversando.
+    - Evite começar as frases com "Olá" ou "Oi".
+    - Não use emojis, smiles, ou descrições de emojis.
+    - A pergunta do usuário é: "${userText}"`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -24,5 +28,5 @@ exports.handler = async (event, context) => {
       statusCode: 500,
       body: JSON.stringify({ aiResponse: "Desculpe, houve um erro ao tentar me comunicar com a inteligência artificial." }),
     };
-  }
+    }
 };
