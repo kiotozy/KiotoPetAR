@@ -80,14 +80,13 @@
                 <a-asset-item id="kioto-model" src="kioto.glb"></a-asset-item>
             </a-assets>
 
-            <a-marker preset="hiro">
-                <a-entity
-                    gltf-model="#kioto-model"
-                    scale="0.2 0.2 0.2"
-                    animation-mixer="clip: action_wave"
-                    id="kioto-entity">
-                </a-entity>
-            </a-marker>
+            <a-entity
+                gltf-model="#kioto-model"
+                position="0 0 -3"
+                scale="0.2 0.2 0.2"
+                animation-mixer="clip: action_wave"
+                id="kioto-entity">
+            </a-entity>
 
             <a-entity camera></a-entity>
         </a-scene>
