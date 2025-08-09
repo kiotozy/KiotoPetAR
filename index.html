@@ -99,7 +99,7 @@
             position="0 0 -2"
             scale="0.9 0.9 0.9"
             rotation="0 0 0"
-            animation-mixer="clip: nomedaanimacao"
+            animation-mixer="clip: capoeira"
             gesture-detector>
         </a-entity>
 
@@ -183,18 +183,13 @@
                 return;
             }
 
-            if (comando.includes("dançar")) {
-                setAnimation("dance"); // Substitua 'dance' pelo nome correto da animação
-                return;
-            }
-
-            if (comando.includes("luta")) {
-                setAnimation("fight"); // Substitua 'fight' pelo nome correto da animação
+            if (comando.includes("dançar") || comando.includes("luta")) {
+                setAnimation("capoeira");
                 return;
             }
 
             if (comando.includes("chute")) {
-                setAnimation("kick"); // Substitua 'kick' pelo nome correto da animação
+                setAnimation("chute");
                 return;
             }
 
