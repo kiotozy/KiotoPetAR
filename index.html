@@ -117,7 +117,6 @@
             }, { once: true });
         }
 
-        let currentAudio = null;
         let isSpeaking = false;
 
         // Configuração do reconhecimento de voz
@@ -137,11 +136,8 @@
                     recognition.stop();
                 } else {
                     if (isSpeaking) {
-                        if (currentAudio) {
-                            currentAudio.pause();
-                            currentAudio.currentTime = 0;
-                            isSpeaking = false;
-                        }
+                        window.speechSynthesis.cancel();
+                        isSpeaking = false;
                     }
                     recognition.start();
                 }
@@ -190,33 +186,14 @@
                         throw new Error(`Erro: ${response.status}`);
                     }
 
-                    const audioBlob = await response.blob();
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    
-                    playAudioFromURL(audioUrl);
+                    const result = await response.json();
+                    speakText(result.aiResponse);
 
                 } catch (error) {
                     console.error("Erro ao se comunicar com a IA:", error);
                     speakText("Desculpe, houve um erro ao tentar me comunicar com a inteligência artificial.");
                 }
             };
-
-            function playAudioFromURL(url) {
-                if (currentAudio) {
-                    currentAudio.pause();
-                    currentAudio.currentTime = 0;
-                }
-                
-                const audio = new Audio(url);
-                isSpeaking = true;
-                currentAudio = audio;
-                audio.play();
-                audio.onended = () => {
-                    isSpeaking = false;
-                    currentAudio = null;
-                    URL.revokeObjectURL(url);
-                };
-            }
 
             const synth = window.speechSynthesis;
             function speakText(text) {
@@ -230,6 +207,12 @@
                     utterance.voice = portugueseVoice;
                 }
                 synth.speak(utterance);
+                utterance.onstart = () => {
+                    isSpeaking = true;
+                };
+                utterance.onend = () => {
+                    isSpeaking = false;
+                };
             }
 
         } else {
