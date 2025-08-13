@@ -135,26 +135,13 @@
             }
         });
 
-        // ROTACIONAR MODELO COM DEDO (um dedo)
-        AFRAME.registerComponent('gesture-detector', {
-            init: function () {
-                this.el.sceneEl.addEventListener('onefingermove', (event) => {
-                    const rotation = this.el.getAttribute('rotation');
-                    this.el.setAttribute('rotation', {
-                        x: rotation.x,
-                        y: rotation.y + event.detail.positionChange.x * 2,
-                        z: rotation.z
-                    });
-                });
-            }
-        });
-
         // NOVO COMPONENTE: Controles avançados no AR
         AFRAME.registerComponent('gesture-controls', {
             schema: {
-                rotationFactor: {default: 5},
-                scaleFactor: {default: 2},
-                moveFactor: {default: 0.01}
+                rotationFactor: {default: 5},   // Velocidade de rotação
+                scaleFactor: {default: 2},      // Velocidade de escala
+                moveFactor: {default: 0.01},    // Velocidade de movimento no plano
+                depthFactor: {default: 0.05}    // Velocidade para frente/trás
             },
             init: function () {
                 const el = this.el;
@@ -184,12 +171,18 @@
                     }
                 });
 
-                // Mover com dois dedos
+                // Mover com dois dedos + ajuste de profundidade
                 el.sceneEl.addEventListener('twofingersmove', function (event) {
-                    if (event.detail.scaleChange === 1) { // apenas movimento, sem pinça
+                    if (event.detail.scaleChange === 1) {
                         const pos = el.object3D.position;
                         pos.x += event.detail.positionChange.x * data.moveFactor;
                         pos.y -= event.detail.positionChange.y * data.moveFactor;
+                    }
+
+                    // Aproximar/Afastar com movimento vertical de dois dedos
+                    if (Math.abs(event.detail.positionChange.y) > Math.abs(event.detail.positionChange.x)) {
+                        const pos = el.object3D.position;
+                        pos.z += event.detail.positionChange.y * data.depthFactor;
                     }
                 });
             }
