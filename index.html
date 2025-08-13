@@ -100,7 +100,8 @@
             scale="0.9 0.9 0.9"
             rotation="0 0 0"
             animation-mixer="clip: capoeira"
-            gesture-detector>
+            gesture-detector
+            gesture-controls>
         </a-entity>
 
         <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
@@ -134,7 +135,7 @@
             }
         });
 
-        // ROTACIONAR MODELO COM DEDO
+        // ROTACIONAR MODELO COM DEDO (um dedo)
         AFRAME.registerComponent('gesture-detector', {
             init: function () {
                 this.el.sceneEl.addEventListener('onefingermove', (event) => {
@@ -144,6 +145,52 @@
                         y: rotation.y + event.detail.positionChange.x * 2,
                         z: rotation.z
                     });
+                });
+            }
+        });
+
+        // NOVO COMPONENTE: Controles avançados no AR
+        AFRAME.registerComponent('gesture-controls', {
+            schema: {
+                rotationFactor: {default: 5},
+                scaleFactor: {default: 2},
+                moveFactor: {default: 0.01}
+            },
+            init: function () {
+                const el = this.el;
+                const data = this.data;
+                let initialScale = el.object3D.scale.clone();
+
+                // Rotação com um dedo
+                el.sceneEl.addEventListener('onefingermove', function (event) {
+                    const rotation = el.getAttribute('rotation');
+                    el.setAttribute('rotation', {
+                        x: rotation.x,
+                        y: rotation.y + event.detail.positionChange.x * data.rotationFactor,
+                        z: rotation.z
+                    });
+                });
+
+                // Escalar com dois dedos (pinça)
+                el.sceneEl.addEventListener('twofingersstart', function () {
+                    initialScale = el.object3D.scale.clone();
+                });
+                el.sceneEl.addEventListener('twofingersmove', function (event) {
+                    if (event.detail.scaleChange !== 1) {
+                        const scale = initialScale.clone();
+                        const pinch = event.detail.scaleChange * data.scaleFactor;
+                        scale.multiplyScalar(pinch);
+                        el.object3D.scale.copy(scale);
+                    }
+                });
+
+                // Mover com dois dedos
+                el.sceneEl.addEventListener('twofingersmove', function (event) {
+                    if (event.detail.scaleChange === 1) { // apenas movimento, sem pinça
+                        const pos = el.object3D.position;
+                        pos.x += event.detail.positionChange.x * data.moveFactor;
+                        pos.y -= event.detail.positionChange.y * data.moveFactor;
+                    }
                 });
             }
         });
@@ -176,7 +223,6 @@
         async function processCommand(comando) {
             comando = comando.toLowerCase();
 
-            // Lógica para comandos de animação
             if (comando.includes("parar")) {
                 modelEntity.removeAttribute("animation-mixer");
                 currentAnimation = null;
@@ -193,7 +239,6 @@
                 return;
             }
 
-            // Para todas as outras perguntas, chame a IA
             try {
                 const response = await fetch('/.netlify/functions/ask-kioto', {
                     method: 'POST',
