@@ -4,10 +4,7 @@
   <meta charset="utf-8" />
   <title>Kioto Pet AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
     #buttons {
@@ -31,12 +28,6 @@
     #micButton { background-color: #03a9f4; }
     #micButton.listening { background-color: green; }
     #arButton { background-color: #03a9f4; }
-    a-scene {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 1;
-    }
     .a-enter-vr-button { display: none !important; }
   </style>
 </head>
@@ -75,8 +66,10 @@
       }
     });
 
+    // Ajuste no AR
     scene.addEventListener('enter-vr', function () {
       if (this.is('ar-mode')) {
+        // Mantém altura original e aproxima no AR
         modelEntity.object3D.position.set(0, 0, -1.5);
         modelEntity.object3D.scale.set(0.45, 0.45, 0.45);
       }
@@ -86,7 +79,7 @@
       modelEntity.object3D.scale.set(0.45, 0.45, 0.45);
     });
 
-    // ===== Gestos 3D + AR =====
+    // ===== Gestos SOMENTE no AR =====
     let startDist = 0;
     let startScale = 1;
     let startRot = {x:0, y:0};
@@ -96,6 +89,7 @@
     const canvas = scene.renderer.domElement;
 
     canvas.addEventListener('touchstart', (e) => {
+      if (!scene.is('ar-mode')) return; // só no AR
       startTouches = [...e.touches];
       if (e.touches.length === 1) {
         startRot = {...modelEntity.getAttribute('rotation')};
@@ -110,6 +104,7 @@
     });
 
     canvas.addEventListener('touchmove', (e) => {
+      if (!scene.is('ar-mode')) return;
       e.preventDefault();
       if (e.touches.length === 1) {
         const dx = e.touches[0].pageX - startTouches[0].pageX;
@@ -137,6 +132,7 @@
     });
 
     canvas.addEventListener('touchend', () => {
+      if (!scene.is('ar-mode')) return;
       startTouches = [];
     });
   </script>
