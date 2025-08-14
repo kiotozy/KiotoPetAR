@@ -5,6 +5,7 @@
     <title>Kioto Pet AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+    <!-- A-Frame e plugins -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
@@ -49,19 +50,12 @@
             background-color: #f44336;
             z-index: 1001;
         }
-        a-scene {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
         .a-enter-vr-button {
             display: none !important;
         }
     </style>
 
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script>
@@ -97,11 +91,10 @@
             id="glb"
             gltf-model="#model"
             position="0 0 -2"
-            scale="0.9 0.9 0.9"
+            scale="0.5 0.5 0.5"
             rotation="0 0 0"
             animation-mixer="clip: capoeira"
-            gesture-detector
-            gesture-controls>
+            gesture-handler>
         </a-entity>
 
         <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
@@ -135,62 +128,44 @@
             }
         });
 
-        // NOVO COMPONENTE: Controles avançados no AR
-        AFRAME.registerComponent('gesture-controls', {
+        // Gestos: mover, redimensionar e rotacionar
+        AFRAME.registerComponent('gesture-handler', {
             schema: {
-                rotationFactor: {default: 5},   // Velocidade de rotação
-                scaleFactor: {default: 2},      // Velocidade de escala
-                moveFactor: {default: 0.01},    // Velocidade de movimento no plano
-                depthFactor: {default: 0.05}    // Velocidade para frente/trás
+                rotationFactor: {default: 5},
+                scaleFactor: {default: 2}
             },
             init: function () {
-                const el = this.el;
-                const data = this.data;
-                let initialScale = el.object3D.scale.clone();
+                this.handleRotation = this.handleRotation.bind(this);
+                this.handleScale = this.handleScale.bind(this);
+                this.handleMove = this.handleMove.bind(this);
 
-                // Rotação com um dedo
-                el.sceneEl.addEventListener('onefingermove', function (event) {
-                    const rotation = el.getAttribute('rotation');
-                    el.setAttribute('rotation', {
-                        x: rotation.x,
-                        y: rotation.y + event.detail.positionChange.x * data.rotationFactor,
-                        z: rotation.z
-                    });
-                });
-
-                // Escalar com dois dedos (pinça)
-                el.sceneEl.addEventListener('twofingersstart', function () {
-                    initialScale = el.object3D.scale.clone();
-                });
-                el.sceneEl.addEventListener('twofingersmove', function (event) {
-                    if (event.detail.scaleChange !== 1) {
-                        const scale = initialScale.clone();
-                        const pinch = event.detail.scaleChange * data.scaleFactor;
-                        scale.multiplyScalar(pinch);
-                        el.object3D.scale.copy(scale);
-                    }
-                });
-
-                // Mover com dois dedos + ajuste de profundidade
-                el.sceneEl.addEventListener('twofingersmove', function (event) {
-                    if (event.detail.scaleChange === 1) {
-                        const pos = el.object3D.position;
-                        pos.x += event.detail.positionChange.x * data.moveFactor;
-                        pos.y -= event.detail.positionChange.y * data.moveFactor;
-                    }
-
-                    // Aproximar/Afastar com movimento vertical de dois dedos
-                    if (Math.abs(event.detail.positionChange.y) > Math.abs(event.detail.positionChange.x)) {
-                        const pos = el.object3D.position;
-                        pos.z += event.detail.positionChange.y * data.depthFactor;
-                    }
-                });
+                this.el.sceneEl.addEventListener('onefingermove', this.handleRotation);
+                this.el.sceneEl.addEventListener('twofingermove', this.handleMove);
+                this.el.sceneEl.addEventListener('pinchmoved', this.handleScale);
+            },
+            handleRotation: function (event) {
+                const rotation = this.el.getAttribute('rotation');
+                rotation.y += event.detail.positionChange.x * this.data.rotationFactor;
+                this.el.setAttribute('rotation', rotation);
+            },
+            handleScale: function (event) {
+                const scale = this.el.getAttribute('scale');
+                const factor = event.detail.scaleChange * this.data.scaleFactor;
+                scale.x *= factor;
+                scale.y *= factor;
+                scale.z *= factor;
+                this.el.setAttribute('scale', scale);
+            },
+            handleMove: function (event) {
+                const position = this.el.getAttribute('position');
+                position.x += event.detail.positionChange.x;
+                position.z += event.detail.positionChange.y;
+                this.el.setAttribute('position', position);
             }
         });
 
-        // ÁUDIO e ANIMAÇÕES
+        // Áudio e animações
         let isSpeaking = false;
-        let currentAudio = null;
         let currentAnimation = null;
 
         function speakText(text) {
@@ -198,12 +173,8 @@
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'pt-BR';
                 isSpeaking = true;
-                utterance.onend = () => {
-                    isSpeaking = false;
-                };
+                utterance.onend = () => { isSpeaking = false; };
                 window.speechSynthesis.speak(utterance);
-            } else {
-                console.error("Seu navegador não suporta a API de fala.");
             }
         }
 
@@ -221,17 +192,14 @@
                 currentAnimation = null;
                 return;
             }
-
             if (comando.includes("dançar") || comando.includes("luta")) {
                 setAnimation("capoeira");
                 return;
             }
-
             if (comando.includes("chute")) {
                 setAnimation("chute");
                 return;
             }
-
             try {
                 const response = await fetch('/.netlify/functions/ask-kioto', {
                     method: 'POST',
@@ -240,13 +208,12 @@
                 });
                 const data = await response.json();
                 speakText(data.aiResponse);
-            } catch (error) {
-                console.error("Erro na comunicação com a IA:", error);
+            } catch {
                 speakText("Desculpe, não consigo me conectar com a inteligência artificial agora.");
             }
         }
 
-        // RECONHECIMENTO DE VOZ
+        // Reconhecimento de voz
         let recognition;
         let isListening = false;
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -262,12 +229,7 @@
                     recognition.stop();
                 } else {
                     if (isSpeaking) {
-                        if (currentAudio) {
-                            currentAudio.pause();
-                            currentAudio.currentTime = 0;
-                            isSpeaking = false;
-                            currentAudio = null;
-                        } else if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+                        if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
                             window.speechSynthesis.cancel();
                             isSpeaking = false;
                         }
@@ -290,12 +252,10 @@
 
             recognition.onresult = (event) => {
                 const comando = event.results[0][0].transcript;
-                console.log("Comando de voz:", comando);
                 processCommand(comando);
             };
 
-            recognition.onerror = (event) => {
-                console.error("Erro no reconhecimento de voz:", event.error);
+            recognition.onerror = () => {
                 micButton.classList.remove("listening");
                 micButton.textContent = "🎤 Erro";
             };
