@@ -5,9 +5,8 @@
   <title>Kioto Pet AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-  <!-- A-Frame e plugins -->
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
@@ -32,13 +31,6 @@
     #micButton { background-color: #03a9f4; }
     #micButton.listening { background-color: green; }
     #arButton { background-color: #03a9f4; }
-    #logoutButton {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background-color: #f44336;
-      z-index: 1001;
-    }
     a-scene {
       position: absolute;
       top: 0; left: 0;
@@ -53,14 +45,8 @@
     <button id="micButton">🎤 Falar</button>
     <button id="arButton">Ativar AR</button>
   </div>
-  <button id="logoutButton">Sair</button>
 
-  <a-scene id="scene"
-           embedded
-           xr-mode-ui="enabled: false"
-           vr-mode-ui="enabled: false"
-           renderer="antialias: true"
-           background="color: #ECECEC">
+  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true">
     <a-assets>
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
     </a-assets>
@@ -68,21 +54,19 @@
     <a-entity id="glb"
               gltf-model="#model"
               position="0 0 -2"
-              scale="0.35 0.35 0.35"
+              scale="0.45 0.45 0.45"
               rotation="0 0 0"
               animation-mixer="clip: capoeira">
     </a-entity>
 
-    <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+    <a-plane id="ground" position="0 -0.01 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
     <a-entity camera position="0 1.6 0"></a-entity>
   </a-scene>
 
   <script>
     const modelEntity = document.getElementById('glb');
     const arButton = document.getElementById('arButton');
-    const micButton = document.getElementById('micButton');
     const scene = document.querySelector('a-scene');
-    const ground = document.getElementById('ground');
 
     // Botão AR
     arButton.addEventListener('click', () => {
@@ -93,68 +77,67 @@
 
     scene.addEventListener('enter-vr', function () {
       if (this.is('ar-mode')) {
-        ground.setAttribute('visible', 'false');
-        modelEntity.setAttribute('position', '0 0 -1.5');
-        modelEntity.setAttribute('scale', '0.35 0.35 0.35');
+        modelEntity.object3D.position.set(0, 0, -1.5);
+        modelEntity.object3D.scale.set(0.45, 0.45, 0.45);
       }
     });
     scene.addEventListener('exit-vr', function () {
-      ground.setAttribute('visible', 'true');
-      modelEntity.setAttribute('position', '0 0 -2');
-      modelEntity.setAttribute('scale', '0.35 0.35 0.35');
+      modelEntity.object3D.position.set(0, 0, -2);
+      modelEntity.object3D.scale.set(0.45, 0.45, 0.45);
     });
 
     // ===== Gestos 3D + AR =====
-    let startDistance = 0;
+    let startDist = 0;
     let startScale = 1;
-    let startRotation = {x:0, y:0};
-    let startPosition = {x:0, z:0};
-    let isPinching = false;
-    let isMoving = false;
+    let startRot = {x:0, y:0};
+    let startPos = {x:0, z:0};
+    let startTouches = [];
 
     const canvas = scene.renderer.domElement;
 
     canvas.addEventListener('touchstart', (e) => {
+      startTouches = [...e.touches];
       if (e.touches.length === 1) {
-        startRotation = {...modelEntity.getAttribute('rotation')};
+        startRot = {...modelEntity.getAttribute('rotation')};
       }
       if (e.touches.length === 2) {
-        isPinching = true;
         startScale = modelEntity.object3D.scale.x;
-        startPosition = {...modelEntity.object3D.position};
+        startPos = {...modelEntity.object3D.position};
         const dx = e.touches[0].pageX - e.touches[1].pageX;
         const dy = e.touches[0].pageY - e.touches[1].pageY;
-        startDistance = Math.sqrt(dx*dx + dy*dy);
+        startDist = Math.sqrt(dx*dx + dy*dy);
       }
     });
 
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      if (e.touches.length === 1 && !isPinching) {
-        const dx = e.touches[0].movementX || e.touches[0].pageX;
-        const rot = {...startRotation};
-        rot.y += dx * 0.2;
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].pageX - startTouches[0].pageX;
+        const rot = {...startRot};
+        rot.y += dx * 0.3;
         modelEntity.setAttribute('rotation', rot);
       }
       if (e.touches.length === 2) {
         const dx = e.touches[0].pageX - e.touches[1].pageX;
         const dy = e.touches[0].pageY - e.touches[1].pageY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        const scaleFactor = distance / startDistance;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        // Escala
+        const scaleFactor = dist / startDist;
         let newScale = startScale * scaleFactor;
         newScale = Math.max(0.1, Math.min(4, newScale));
         modelEntity.object3D.scale.set(newScale, newScale, newScale);
 
-        // mover no plano
+        // Movimento lateral/frente-trás
         const avgX = (e.touches[0].pageX + e.touches[1].pageX) / 2;
         const avgY = (e.touches[0].pageY + e.touches[1].pageY) / 2;
-        modelEntity.object3D.position.x = startPosition.x + (avgX - window.innerWidth / 2) * 0.002;
-        modelEntity.object3D.position.z = startPosition.z + (avgY - window.innerHeight / 2) * 0.002;
+        modelEntity.object3D.position.x = startPos.x + (avgX - window.innerWidth / 2) * 0.002;
+        modelEntity.object3D.position.z = startPos.z + (avgY - window.innerHeight / 2) * 0.002;
       }
     });
 
     canvas.addEventListener('touchend', () => {
-      isPinching = false;
+      startTouches = [];
     });
   </script>
 </body>
