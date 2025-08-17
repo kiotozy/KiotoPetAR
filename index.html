@@ -1,108 +1,249 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Personagem 3D + AR com Gestos</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-  </head>
-  <body>
-    <a-scene
-      vr-mode-ui="enabled: false"
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      renderer="antialias: true; colorManagement: true;"
-    >
-      <!-- Luz -->
-      <a-entity light="type: directional; intensity: 1" position="1 1 1"></a-entity>
-      <a-entity light="type: ambient; intensity: 0.5"></a-entity>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Kioto Pet AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    #buttons {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      z-index: 1000;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #micButton { background-color: #03a9f4; }
+    #micButton.listening { background-color: green; }
+    #arButton { background-color: #03a9f4; }
+    #logoutButton {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: #f44336;
+      z-index: 1001;
+    }
+    a-scene {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    .a-enter-vr-button { display: none !important; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyA4p0lhme7RQf1pN0idXgnbUAdR7z_4m2A",
+      authDomain: "kiotopet.firebaseapp.com",
+      projectId: "kiotopet",
+      storageBucket: "kiotopet.firebasestorage.app",
+      messagingSenderId: "200099219198",
+      appId: "1:200099219198:web:38d37babfa5fc616fd07af",
+      measurementId: "G-W493XKCZFQ"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    auth.onAuthStateChanged(user => {
+      if (!user) window.location.href = "login.html";
+    });
+  </script>
+</head>
+<body>
+  <div id="buttons">
+    <button id="micButton">🎤 Falar</button>
+    <button id="arButton">Ativar AR</button>
+  </div>
+  <button id="logoutButton">Sair</button>
 
-      <!-- Modelo 3D -->
-      <a-entity
-        id="personagem"
-        gltf-model="url(https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Fox/glTF/Fox.gltf)"
-        position="0 0 -2"
-        scale="0.5 0.5 0.5"
-        rotation="0 0 0"
-      ></a-entity>
+  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" gesture-detector>
+    <a-assets>
+      <a-asset-item id="model" src="kioto.glb"></a-asset-item>
+    </a-assets>
 
-      <!-- Câmera -->
-      <a-entity camera look-controls></a-entity>
-    </a-scene>
+    <a-entity id="glb"
+              gltf-model="#model"
+              position="0 0 -2"
+              scale="0.9 0.9 0.9"
+              rotation="0 0 0"
+              animation-mixer="clip: capoeira"
+              gesture-detector>
+    </a-entity>
 
-    <script>
-      const personagem = document.getElementById("personagem");
-      const scene = document.querySelector("a-scene");
+    <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
+    <a-sky id="sky" color="#ECECEC"></a-sky>
+    <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
+  </a-scene>
 
-      let startDistance = 0;
-      let startScale = 1;
-      let lastX = 0,
-        lastY = 0;
-      let isTwoFingers = false;
+  <script>
+    const modelEntity = document.getElementById('glb');
+    const arButton = document.getElementById('arButton');
+    const micButton = document.getElementById('micButton');
+    const logoutButton = document.getElementById('logoutButton');
+    const scene = document.querySelector('a-scene');
+    const ground = document.getElementById('ground');
+    const sky = document.getElementById('sky');
 
-      function getDistance(touches) {
-        const dx = touches[0].clientX - touches[1].clientX;
-        const dy = touches[0].clientY - touches[1].clientY;
-        return Math.sqrt(dx * dx + dy * dy);
+    logoutButton.addEventListener('click', () => {
+      auth.signOut().then(() => window.location.href = "login.html");
+    });
+
+    arButton.addEventListener('click', () => {
+      if (scene.enterAR) {
+        scene.enterAR().catch(() => alert("Seu dispositivo não suporta AR ou permissão não foi concedida."));
+      }
+    });
+
+    // Ajusta tamanho no modo AR
+    scene.addEventListener('enter-vr', function () {
+      if (this.is('ar-mode')) {
+        ground.setAttribute('visible', 'false');
+        sky.setAttribute('visible', 'false');
+        modelEntity.setAttribute('scale', '0.5 0.5 0.5'); // menor no AR
+      }
+    });
+    scene.addEventListener('exit-vr', function () {
+      modelEntity.setAttribute('scale', '0.9 0.9 0.9'); // volta ao normal
+    });
+
+    // ROTACIONAR MODELO COM DEDO
+    AFRAME.registerComponent('gesture-detector', {
+      init: function () {
+        this.el.sceneEl.addEventListener('onefingermove', (event) => {
+          const rotation = this.el.getAttribute('rotation');
+          this.el.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + event.detail.positionChange.x * 2,
+            z: rotation.z
+          });
+        });
+      }
+    });
+
+    // ÁUDIO e ANIMAÇÕES
+    let isSpeaking = false;
+    let currentAudio = null;
+    let currentAnimation = null;
+
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';
+        isSpeaking = true;
+        utterance.onend = () => { isSpeaking = false; };
+        window.speechSynthesis.speak(utterance);
+      } else {
+        console.error("Seu navegador não suporta a API de fala.");
+      }
+    }
+
+    function setAnimation(clipName) {
+      if (currentAnimation === clipName) return;
+      modelEntity.setAttribute('animation-mixer', `clip: ${clipName}`);
+      currentAnimation = clipName;
+    }
+
+    async function processCommand(comando) {
+      comando = comando.toLowerCase();
+
+      if (comando.includes("parar")) {
+        modelEntity.removeAttribute("animation-mixer");
+        currentAnimation = null;
+        return;
+      }
+      if (comando.includes("dançar") || comando.includes("luta")) {
+        setAnimation("capoeira");
+        return;
+      }
+      if (comando.includes("chute")) {
+        setAnimation("chute");
+        return;
       }
 
-      scene.addEventListener("loaded", () => {
-        const canvas = scene.renderer.domElement;
-
-        canvas.addEventListener("touchstart", (e) => {
-          if (e.touches.length === 2) {
-            isTwoFingers = true;
-            startDistance = getDistance(e.touches);
-            const s = personagem.getAttribute("scale");
-            startScale = s.x;
-            lastX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            lastY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-          } else if (e.touches.length === 1) {
-            isTwoFingers = false;
-            lastX = e.touches[0].clientX;
-            lastY = e.touches[0].clientY;
-          }
+      try {
+        const response = await fetch('/.netlify/functions/ask-kioto', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userText: comando }),
         });
+        const data = await response.json();
+        speakText(data.aiResponse);
+      } catch (error) {
+        console.error("Erro na comunicação com a IA:", error);
+        speakText("Desculpe, não consigo me conectar com a inteligência artificial agora.");
+      }
+    }
 
-        canvas.addEventListener("touchmove", (e) => {
-          if (e.touches.length === 2) {
-            // Pinça (escala)
-            const newDist = getDistance(e.touches);
-            const scaleFactor = newDist / startDistance;
-            const newScale = startScale * scaleFactor;
-            personagem.setAttribute("scale", {
-              x: newScale,
-              y: newScale,
-              z: newScale,
-            });
+    // RECONHECIMENTO DE VOZ
+    let recognition;
+    let isListening = false;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-            // Movimento no plano
-            const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            const dx = (midX - lastX) * 0.01;
-            const dy = (midY - lastY) * 0.01;
-            const pos = personagem.getAttribute("position");
-            personagem.setAttribute("position", {
-              x: pos.x + dx,
-              y: pos.y - dy,
-              z: pos.z,
-            });
-            lastX = midX;
-            lastY = midY;
-          } else if (e.touches.length === 1) {
-            // Rotação
-            const dx = e.touches[0].clientX - lastX;
-            const rot = personagem.getAttribute("rotation");
-            personagem.setAttribute("rotation", {
-              x: rot.x,
-              y: rot.y + dx * 0.5,
-              z: rot.z,
-            });
-            lastX = e.touches[0].clientX;
-            lastY = e.touches[0].clientY;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      micButton.addEventListener('click', () => {
+        if (isListening) {
+          recognition.stop();
+        } else {
+          if (isSpeaking) {
+            if (currentAudio) {
+              currentAudio.pause();
+              currentAudio.currentTime = 0;
+              isSpeaking = false;
+              currentAudio = null;
+            } else if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+              window.speechSynthesis.cancel();
+              isSpeaking = false;
+            }
           }
-        });
+          recognition.start();
+        }
       });
-    </script>
-  </body>
+
+      recognition.onstart = () => {
+        isListening = true;
+        micButton.classList.add("listening");
+        micButton.textContent = "🎤 Ouvindo...";
+      };
+      recognition.onend = () => {
+        isListening = false;
+        micButton.classList.remove("listening");
+        micButton.textContent = "🎤 Falar";
+      };
+      recognition.onresult = (event) => {
+        const comando = event.results[0][0].transcript;
+        console.log("Comando de voz:", comando);
+        processCommand(comando);
+      };
+      recognition.onerror = (event) => {
+        console.error("Erro no reconhecimento de voz:", event.error);
+        micButton.classList.remove("listening");
+        micButton.textContent = "🎤 Erro";
+      };
+    } else {
+      alert("Seu navegador não suporta reconhecimento de voz.");
+    }
+  </script>
+</body>
 </html>
