@@ -91,8 +91,14 @@
               gesture-detector>
     </a-entity>
 
+    <!-- Plano e céu -->
     <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
     <a-sky id="sky" color="#ECECEC"></a-sky>
+
+    <!-- Luzes adicionadas -->
+    <a-entity light="type: ambient; color: #ffffff; intensity: 1"></a-entity>
+    <a-entity light="type: directional; color: #ffffff; intensity: 0.8" position="2 4 5"></a-entity>
+
     <a-entity camera position="0 1.6 0" look-controls="enabled: true"></a-entity>
   </a-scene>
 
