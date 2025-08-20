@@ -51,7 +51,7 @@
     .a-enter-vr-button { display: none !important; }
   </style>
 
-  <!-- Firebase (igual ao seu) -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script>
@@ -79,7 +79,6 @@
   </div>
   <button id="logoutButton">Sair</button>
 
-  <!-- Cena com renderer reforçado -->
   <a-scene id="scene"
            embedded
            xr-mode-ui="enabled: false"
@@ -90,7 +89,7 @@
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
     </a-assets>
 
-    <!-- Modelo (posição mais próxima, mesma escala) -->
+    <!-- Modelo -->
     <a-entity id="glb"
               gltf-model="#model"
               position="0 0 -1.6"
@@ -105,14 +104,14 @@
     <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
     <a-sky id="sky" color="#ECECEC"></a-sky>
 
-    <!-- 🔆 Luzes reforçadas -->
+    <!-- Luzes -->
     <a-entity light="type: ambient; color: #ffffff; intensity: 2.2"></a-entity>
     <a-entity light="type: hemisphere; color: #ffffff; groundColor: #888888; intensity: 2.0"></a-entity>
     <a-entity light="type: directional; color: #ffffff; intensity: 2.8" position="2 4 5"></a-entity>
     <a-entity light="type: directional; color: #ffffff; intensity: 1.8" position="-3 3 -2"></a-entity>
 
-    <!-- Câmera na altura dos olhos olhando de frente -->
-    <a-entity camera position="0 1.4 0" look-controls="enabled: true"></a-entity>
+    <!-- Câmera frontal no mesmo nível -->
+    <a-entity camera position="0 1.6 3" look-controls="enabled: true"></a-entity>
   </a-scene>
 
   <script>
@@ -134,23 +133,23 @@
       }
     });
 
-    // --- Rotação horizontal com 1 dedo (como antes)
+    // --- Rotação horizontal + vertical
     AFRAME.registerComponent('gesture-detector', {
       init: function () {
         this.el.sceneEl.addEventListener('onefingermove', (event) => {
           const rotation = modelEntity.getAttribute('rotation');
           modelEntity.setAttribute('rotation', {
-            x: rotation.x,
-            y: rotation.y + event.detail.positionChange.x * 2,
+            x: rotation.x - event.detail.positionChange.y * 2, // vertical
+            y: rotation.y + event.detail.positionChange.x * 2, // horizontal
             z: rotation.z
           });
         });
       }
     });
 
-    // --- Zoom com pinça (2 dedos)
+    // --- Pinça (zoom)
     AFRAME.registerComponent('pinch-scale', {
-      schema: { min: {default: 0.4}, max: {default: 2.5} },
+      schema: { min: {default: 0.5}, max: {default: 3.0} },
       init: function () {
         this.initialScale = this.el.object3D.scale.clone();
         this.scaleFactor = 1;
@@ -161,27 +160,28 @@
         this.el.sceneEl.removeEventListener('twofingermove', this.onPinch);
       },
       onPinch: function (e) {
-        // e.detail.spreadChange: variação da distância entre dedos
-        this.scaleFactor += e.detail.spreadChange / 300; // sensibilidade
+        this.scaleFactor += e.detail.spreadChange / 300;
         this.scaleFactor = Math.min(Math.max(this.scaleFactor, this.data.min), this.data.max);
         const s = this.scaleFactor;
         this.el.object3D.scale.set(this.initialScale.x * s, this.initialScale.y * s, this.initialScale.z * s);
       }
     });
 
-    // Ajusta tamanho no modo AR
+    // --- Ajustes no modo AR
     scene.addEventListener('enter-vr', function () {
       if (this.is('ar-mode')) {
         ground.setAttribute('visible', 'false');
         sky.setAttribute('visible', 'false');
-        modelEntity.setAttribute('scale', '0.5 0.5 0.5'); // menor no AR
+        modelEntity.setAttribute('scale', '1.2 1.2 1.2'); // maior no AR
+        modelEntity.setAttribute('position', '0 0 -1');   // fixo na frente
       }
     });
     scene.addEventListener('exit-vr', function () {
-      modelEntity.setAttribute('scale', '0.9 0.9 0.9'); // volta ao normal
+      modelEntity.setAttribute('scale', '0.9 0.9 0.9');
+      modelEntity.setAttribute('position', '0 0 -1.6');
     });
 
-    // ÁUDIO e ANIMAÇÕES (tudo igual)
+    // --- Áudio e animações (igual ao seu)
     let isSpeaking = false;
     let currentAudio = null;
     let currentAnimation = "parado";
@@ -206,36 +206,13 @@
 
     async function processCommand(comando) {
       comando = comando.toLowerCase();
-
-      if (comando.includes("parar")) {
-        modelEntity.removeAttribute("animation-mixer");
-        currentAnimation = null;
-        return;
-      }
-      if (comando.includes("dançar") || comando.includes("luta")) {
-        setAnimation("luta");
-        return;
-      }
-      if (comando.includes("chute")) {
-        setAnimation("chute");
-        return;
-      }
-      if (comando.includes("abdominal") || comando.includes("abdominais")) {
-        setAnimation("abdominais");
-        return;
-      }
-      if (comando.includes("break")) {
-        setAnimation("break");
-        return;
-      }
-      if (comando.includes("parado")) {
-        setAnimation("parado");
-        return;
-      }
-      if (comando.includes("polichinelo") || comando.includes("polichinelos")) {
-        setAnimation("polichinelos");
-        return;
-      }
+      if (comando.includes("parar")) { modelEntity.removeAttribute("animation-mixer"); currentAnimation = null; return; }
+      if (comando.includes("dançar") || comando.includes("luta")) { setAnimation("luta"); return; }
+      if (comando.includes("chute")) { setAnimation("chute"); return; }
+      if (comando.includes("abdominal") || comando.includes("abdominais")) { setAnimation("abdominais"); return; }
+      if (comando.includes("break")) { setAnimation("break"); return; }
+      if (comando.includes("parado")) { setAnimation("parado"); return; }
+      if (comando.includes("polichinelo") || comando.includes("polichinelos")) { setAnimation("polichinelos"); return; }
 
       try {
         const response = await fetch('/.netlify/functions/ask-kioto', {
@@ -251,11 +228,10 @@
       }
     }
 
-    // RECONHECIMENTO DE VOZ (igual)
+    // --- Reconhecimento de voz
     let recognition;
     let isListening = false;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
     if (SpeechRecognition) {
       recognition = new SpeechRecognition();
       recognition.lang = 'pt-BR';
@@ -263,44 +239,20 @@
       recognition.interimResults = false;
 
       micButton.addEventListener('click', () => {
-        if (isListening) {
-          recognition.stop();
-        } else {
+        if (isListening) { recognition.stop(); }
+        else {
           if (isSpeaking) {
-            if (currentAudio) {
-              currentAudio.pause();
-              currentAudio.currentTime = 0;
-              isSpeaking = false;
-              currentAudio = null;
-            } else if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
-              window.speechSynthesis.cancel();
-              isSpeaking = false;
-            }
+            if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; isSpeaking = false; currentAudio = null; }
+            else if ('speechSynthesis' in window && window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); isSpeaking = false; }
           }
           recognition.start();
         }
       });
 
-      recognition.onstart = () => {
-        isListening = true;
-        micButton.classList.add("listening");
-        micButton.textContent = "🎤 Ouvindo...";
-      };
-      recognition.onend = () => {
-        isListening = false;
-        micButton.classList.remove("listening");
-        micButton.textContent = "🎤 Falar";
-      };
-      recognition.onresult = (event) => {
-        const comando = event.results[0][0].transcript;
-        console.log("Comando de voz:", comando);
-        processCommand(comando);
-      };
-      recognition.onerror = (event) => {
-        console.error("Erro no reconhecimento de voz:", event.error);
-        micButton.classList.remove("listening");
-        micButton.textContent = "🎤 Erro";
-      };
+      recognition.onstart = () => { isListening = true; micButton.classList.add("listening"); micButton.textContent = "🎤 Ouvindo..."; };
+      recognition.onend = () => { isListening = false; micButton.classList.remove("listening"); micButton.textContent = "🎤 Falar"; };
+      recognition.onresult = (event) => { processCommand(event.results[0][0].transcript); };
+      recognition.onerror = (event) => { console.error("Erro no reconhecimento de voz:", event.error); micButton.classList.remove("listening"); micButton.textContent = "🎤 Erro"; };
     } else {
       alert("Seu navegador não suporta reconhecimento de voz.");
     }
