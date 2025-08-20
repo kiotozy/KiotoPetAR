@@ -5,6 +5,7 @@
   <title>Kioto Pet AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+  <!-- A-Frame + extras + gestures -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
@@ -50,6 +51,7 @@
     .a-enter-vr-button { display: none !important; }
   </style>
 
+  <!-- Firebase (igual ao seu) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script>
@@ -77,36 +79,40 @@
   </div>
   <button id="logoutButton">Sair</button>
 
-  <a-scene id="scene" embedded xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" renderer="antialias: true" gesture-detector>
+  <!-- Cena com renderer reforçado -->
+  <a-scene id="scene"
+           embedded
+           xr-mode-ui="enabled: false"
+           vr-mode-ui="enabled: false"
+           renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 2.2"
+           gesture-detector>
     <a-assets>
       <a-asset-item id="model" src="kioto.glb"></a-asset-item>
     </a-assets>
 
+    <!-- Modelo (posição mais próxima, mesma escala) -->
     <a-entity id="glb"
               gltf-model="#model"
-              position="0 0 -2"
+              position="0 0 -1.6"
               scale="0.9 0.9 0.9"
               rotation="0 0 0"
               animation-mixer="clip: parado"
-              gesture-detector>
+              gesture-detector
+              pinch-scale>
     </a-entity>
 
     <!-- Plano e céu -->
     <a-plane id="ground" position="0 0 -4" rotation="-90 0 0" width="10" height="10" color="#7BC8A4"></a-plane>
     <a-sky id="sky" color="#ECECEC"></a-sky>
 
-    <!-- 🔥 Luzes corrigidas -->
-    <a-entity light="type: ambient; color: #ffffff; intensity: 1.5"></a-entity>
-    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #666666; intensity: 1.2"></a-entity>
-    <a-entity light="type: directional; color: #ffffff; intensity: 1.5" position="2 4 5"></a-entity>
+    <!-- 🔆 Luzes reforçadas -->
+    <a-entity light="type: ambient; color: #ffffff; intensity: 2.2"></a-entity>
+    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #888888; intensity: 2.0"></a-entity>
+    <a-entity light="type: directional; color: #ffffff; intensity: 2.8" position="2 4 5"></a-entity>
+    <a-entity light="type: directional; color: #ffffff; intensity: 1.8" position="-3 3 -2"></a-entity>
 
-    <!-- Câmera com orbit-controls (rotaciona + zoom pinça) -->
-    <a-entity camera
-              position="0 1.4 3"
-              look-controls="enabled: false"
-              orbit-controls="target: 0 1 0; enableDamping: true; dampingFactor: 0.25;
-                              rotateSpeed:0.35; zoomSpeed:0.5; minDistance:1; maxDistance:6;">
-    </a-entity>
+    <!-- Câmera na altura dos olhos olhando de frente -->
+    <a-entity camera position="0 1.4 0" look-controls="enabled: true"></a-entity>
   </a-scene>
 
   <script>
@@ -128,6 +134,41 @@
       }
     });
 
+    // --- Rotação horizontal com 1 dedo (como antes)
+    AFRAME.registerComponent('gesture-detector', {
+      init: function () {
+        this.el.sceneEl.addEventListener('onefingermove', (event) => {
+          const rotation = modelEntity.getAttribute('rotation');
+          modelEntity.setAttribute('rotation', {
+            x: rotation.x,
+            y: rotation.y + event.detail.positionChange.x * 2,
+            z: rotation.z
+          });
+        });
+      }
+    });
+
+    // --- Zoom com pinça (2 dedos)
+    AFRAME.registerComponent('pinch-scale', {
+      schema: { min: {default: 0.4}, max: {default: 2.5} },
+      init: function () {
+        this.initialScale = this.el.object3D.scale.clone();
+        this.scaleFactor = 1;
+        this.onPinch = this.onPinch.bind(this);
+        this.el.sceneEl.addEventListener('twofingermove', this.onPinch);
+      },
+      remove: function () {
+        this.el.sceneEl.removeEventListener('twofingermove', this.onPinch);
+      },
+      onPinch: function (e) {
+        // e.detail.spreadChange: variação da distância entre dedos
+        this.scaleFactor += e.detail.spreadChange / 300; // sensibilidade
+        this.scaleFactor = Math.min(Math.max(this.scaleFactor, this.data.min), this.data.max);
+        const s = this.scaleFactor;
+        this.el.object3D.scale.set(this.initialScale.x * s, this.initialScale.y * s, this.initialScale.z * s);
+      }
+    });
+
     // Ajusta tamanho no modo AR
     scene.addEventListener('enter-vr', function () {
       if (this.is('ar-mode')) {
@@ -140,7 +181,7 @@
       modelEntity.setAttribute('scale', '0.9 0.9 0.9'); // volta ao normal
     });
 
-    // ÁUDIO e ANIMAÇÕES
+    // ÁUDIO e ANIMAÇÕES (tudo igual)
     let isSpeaking = false;
     let currentAudio = null;
     let currentAnimation = "parado";
@@ -210,7 +251,7 @@
       }
     }
 
-    // RECONHECIMENTO DE VOZ
+    // RECONHECIMENTO DE VOZ (igual)
     let recognition;
     let isListening = false;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
